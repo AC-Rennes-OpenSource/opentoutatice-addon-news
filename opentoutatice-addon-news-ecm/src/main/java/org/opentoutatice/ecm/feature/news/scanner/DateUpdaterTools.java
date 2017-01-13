@@ -14,7 +14,6 @@ import org.nuxeo.runtime.api.Framework;
 import org.opentoutatice.ecm.feature.news.scanner.io.NewsPeriod;
 
 
-
 /**
  * @author david
  *
@@ -30,16 +29,16 @@ public class DateUpdaterTools {
     /** Date time format for query. */
     public static final String DATE_TIME_QUERY_FORMAT = "yyyy-MM-dd HH:mm:ss";
 
-    /** Next interval. */
+    /** Next daily interval. */
     public static final String NEXT_DAILY_BOUNDARY = "nextDailyBoundary";
-    /** Next interval. */
+    /** Next weekly interval. */
     public static final String NEXT_WEEKLY_BOUNDARY = "nextWeeklyBoundary";
-    /** Next interval. */
+    /** Next error interval. */
     public static final String NEXT_ERROR_BOUNDARY = "nextErrorBoundary";
 
     /** Randon generator. */
     private static final Random rand = new Random();
-    
+
     /**
      * Utility class.
      */
@@ -54,12 +53,12 @@ public class DateUpdaterTools {
      * @return
      */
     public static int getRandomIntIn(int boundary) {
-        //return rand.nextInt(2 * boundary) - boundary;
+        // return rand.nextInt(2 * boundary) - boundary;
         int rInt = rand.nextInt(boundary);
         // Sign
         int sign = rInt % 2 == 0 ? 1 : -1;
-        
-        return sign*rInt;
+
+        return sign * rInt;
     }
 
     /**
@@ -114,11 +113,6 @@ public class DateUpdaterTools {
 
                 break;
 
-            case dev:
-                nextDate = inputDate;
-                break;
-
-
         }
 
         // Debug
@@ -138,9 +132,9 @@ public class DateUpdaterTools {
      * @return
      */
     public static Date getNextDevRandomDate(Date inputDate) {
-        int gap = Integer.valueOf(Framework.getProperty("ottc.news.scan.dev.gap", "5"));
-        int devBoundary = Integer.valueOf(Framework.getProperty("ottc.news.scan.dev.boundary", "2"));
-        return getNextRandomDate(inputDate, devBoundary);
+        // Gap in minutes
+        int gap = Integer.valueOf(Framework.getProperty("ottc.news.scan.dev.gap", "2"));
+        return DateUtils.addMinutes(inputDate, gap);
     }
 
     /**
@@ -152,20 +146,28 @@ public class DateUpdaterTools {
      * @return Date
      */
     public static Date getNextRandomDate(Date inputDate, int boundary) {
-        // Set to midnight
-        Date midnightDate = DateUtils.setHours(inputDate, 0);
-        
         // ms to shift (can be negative)
-        int msToShift = getRandomIntIn(boundary)*60000;
-        
+        int msToShift = getRandomIntIn(boundary) * 60000;
+
         // Date computed from 1970-01-01 00:00:00
-        long inputMs = midnightDate.getTime();
+        long inputMs = inputDate.getTime();
         long time = inputMs + msToShift;
-        
+
         Date nextDate = new Date(0);
         nextDate.setTime(time);
-        
+
         return nextDate;
+    }
+
+    /**
+     * @param boundary
+     * @param midnightDate
+     * @return
+     */
+    public static Date getRandomDateAroundMidnight(int boundary, Date inputDate) {
+        // Set to midnight
+        Date midnightDate = DateUtils.setHours(inputDate, 0);
+        return getRandomDateAroundMidnight(boundary, midnightDate);
     }
 
     // For test ....
@@ -200,13 +202,8 @@ public class DateUpdaterTools {
 
                 break;
 
-            case dev:
-                nextDate = inputDate;
-                break;
-
-
         }
-        
+
         return nextDate;
     }
 

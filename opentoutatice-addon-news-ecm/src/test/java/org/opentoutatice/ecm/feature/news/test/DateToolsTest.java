@@ -29,12 +29,7 @@ public class DateToolsTest {
       System.out.println("[Next+1w ]: " + DateUtils.format(nextWDate, DateUpdaterTools.DATE_TIME_FORMAT));
       
       Date nextDate = DateUpdaterTools.initializeTestNextDate(NewsPeriod.none, inputDate, 720);
-      System.out.println("[Next+non]: " + DateUtils.format(inputDate, DateUpdaterTools.DATE_TIME_FORMAT));
-      
-      
-      
-//      DateUpdaterTools.getNextDevRandomDate(inputDate);
-//      System.out.println("[Next DEV]: " + DateUtils.format(nextDate, DateUpdaterTools.DATE_TIME_FORMAT));
+      System.out.println("[Next+non]: " + DateUtils.format(nextDate, DateUpdaterTools.DATE_TIME_FORMAT));
       
   }
   

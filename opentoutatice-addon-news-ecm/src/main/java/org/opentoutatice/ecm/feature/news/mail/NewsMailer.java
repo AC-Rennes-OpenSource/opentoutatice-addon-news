@@ -11,6 +11,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.lang.time.DateFormatUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.tools.ant.util.DateUtils;
@@ -26,6 +27,7 @@ import org.opentoutatice.ecm.feature.news.scanner.DateUpdaterTools;
 import org.opentoutatice.ecm.reporter.AbstractMailer;
 
 import fr.toutatice.ecm.platform.core.constants.ToutaticeNuxeoStudioConst;
+import fr.toutatice.ecm.platform.core.helper.ToutaticeDocumentHelper;
 
 
 /**
@@ -39,15 +41,15 @@ public class NewsMailer extends AbstractMailer {
 
     /** Modified documents query. */
     private static final String MODIFIED_DOCS_QUERY = "select * from Note, File, Picture, ContextualLink, ToutaticePad where ecm:ancestorId = '%s' "
-            + " and dc:modified < TIMESTAMP '%s'" + " and ecm:isVersion = 0 and ecm:currentLifeCycleState <> 'deleted'" + " order by dc:modified desc";
+            + " and dc:modified > TIMESTAMP '%s'" + " and ecm:isVersion = 0 and ecm:currentLifeCycleState <> 'deleted'" + " order by dc:modified desc";
 
     /** New members query. */
     // FIXME: can do a count() in select
     private static final String NEW_MEMBERS_QUERY = "select distinct ttcs:spaceMembers/*1/login from Workspace "
-            + " where ttcs:spaceMembers/*1/joinedDate < TIMESTAMP '%s'" + " and ecm:isVersion = 0 and ecm:currentLifeCycleState <> 'deleted'";
+            + " where ttcs:spaceMembers/*1/joinedDate > TIMESTAMP '%s'" + " and ecm:isVersion = 0 and ecm:currentLifeCycleState <> 'deleted'";
 
     /** News documents query. */
-    private static final String NEWS_DOCS_QUERY = "select * from Annonce, VEVENT where ecm:ancestorId = '%s' " + " and dc:modified < TIMESTAMP '%s'"
+    private static final String NEWS_DOCS_QUERY = "select * from Annonce, VEVENT where ecm:ancestorId = '%s' " + " and dc:modified > TIMESTAMP '%s'"
             + " and ecm:isVersion = 0 and ecm:currentLifeCycleState <> 'deleted'" + " order by dc:modified desc";
 
     /** Max displayed news and activities. */
@@ -127,9 +129,12 @@ public class NewsMailer extends AbstractMailer {
             // Mofified documents
             DocumentModelList modifiedDocs = getModifiedDocs(member.getSession(), spaceId, lastNewsDate);
             setActivities(modifiedDocs);
-
+            
             if (log.isDebugEnabled() && modifiedDocs != null) {
-                log.debug("Docs modified - " + session.getPrincipal().getName() + " : ");
+                DocumentModel space = ToutaticeDocumentHelper.getUnrestrictedDocument(session, member.getSpaceId());
+                log.debug("[" + space.getTitle() + " : " +session.getPrincipal().getName() + "] "
+                        + "[Last Notif: " + DateFormatUtils.format(lastNewsDate, DateUpdaterTools.DATE_TIME_FORMAT) + "]");
+                log.debug("[" + modifiedDocs.size() + "] MODIFIED DOCS");
                 for (DocumentModel doc : modifiedDocs) {
                     log.debug(doc.getTitle() + " ; ");
                 }
@@ -143,9 +148,19 @@ public class NewsMailer extends AbstractMailer {
                 // News
                 DocumentModelList newsDocs = getNewsDocs(session, spaceId, lastNewsDate);
                 setNews(newMembers.size(), newsDocs);
+                
+                if (log.isDebugEnabled() && newsDocs != null) {
+                    DocumentModel space = ToutaticeDocumentHelper.getUnrestrictedDocument(session, member.getSpaceId());
+                    log.debug("[" + space.getTitle() + " : " +session.getPrincipal().getName() + "] "
+                            + "[Last Notif: " + DateFormatUtils.format(lastNewsDate, DateUpdaterTools.DATE_TIME_FORMAT) + "]");
+                    log.debug("[" + newsDocs.size() + "] NEWS");
+                    for (DocumentModel doc : newsDocs) {
+                        log.debug(doc.getTitle() + " ; ");
+                    }
+                }
 
                 if (log.isDebugEnabled() && newMembers != null) {
-                    log.debug(newMembers.size() + " new members");
+                    log.debug("[" + newMembers.size() + "]" + " new members");
                 }
             } finally {
                 if (newMembers != null) {

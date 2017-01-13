@@ -10,6 +10,6 @@ package org.opentoutatice.ecm.feature.news.scanner.io;
  */
 public enum NewsPeriod {
     
-    none, daily, weekly, error, dev;
+    none, daily, weekly, error;
     
 }

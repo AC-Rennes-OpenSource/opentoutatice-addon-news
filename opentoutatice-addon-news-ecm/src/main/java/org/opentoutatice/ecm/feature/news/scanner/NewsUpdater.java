@@ -4,6 +4,7 @@
 package org.opentoutatice.ecm.feature.news.scanner;
 
 import java.io.Serializable;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.Map;
 
@@ -22,6 +23,9 @@ public class NewsUpdater extends AbstractScanUpdater {
     /** Space member model. */
     private SpaceMember member;
 
+    /** Current date. */
+    private Date currentDate;
+
 
     /**
      * {@inheritDoc}
@@ -38,33 +42,32 @@ public class NewsUpdater extends AbstractScanUpdater {
      * @return String
      * @throws Exception
      */
-    protected String getParamBoundary(NewsPeriod newsPeriod) throws Exception {
+    protected String getBoundaryValue(NewsPeriod newsPeriod) throws Exception {
         // Boundary
-        String boundary = null;
+        String boundaryValue = null;
 
         switch (newsPeriod) {
             case daily:
-                boundary = (String) getParams().get(DateUpdaterTools.NEXT_DAILY_BOUNDARY);
+                boundaryValue = (String) getParams().get(DateUpdaterTools.NEXT_DAILY_BOUNDARY);
                 break;
 
             case weekly:
-                boundary = (String) getParams().get(DateUpdaterTools.NEXT_WEEKLY_BOUNDARY);
+                boundaryValue = (String) getParams().get(DateUpdaterTools.NEXT_WEEKLY_BOUNDARY);
                 break;
 
             case error:
-                boundary = (String) getParams().get(DateUpdaterTools.NEXT_ERROR_BOUNDARY);
+                boundaryValue = (String) getParams().get(DateUpdaterTools.NEXT_ERROR_BOUNDARY);
                 break;
 
             case none:
-                boundary = NewsPeriod.none.name();
+                boundaryValue = "0";
                 break;
-                
-            case dev:
-                boundary = "dev";
+
+            default:
                 break;
         }
 
-        return boundary;
+        return boundaryValue;
 
     }
 
@@ -72,23 +75,45 @@ public class NewsUpdater extends AbstractScanUpdater {
      * {@inheritDoc}
      */
     @Override
-    public boolean filter(Object scannedObject) throws Exception {
+    public boolean filter(int index, Object scannedObject) throws Exception {
         // Member
         this.member = (SpaceMember) this.toModel(scannedObject);
 
-//        // Member must have subscribed
-//        boolean hasSubscribed = this.member.hasSubscribed();
-//        
-//        // Period subscription
-//        boolean noPeriod = NewsPeriod.none.equals(this.member.getNewsPeriod());
-//        
-//        // Date condition
-//        Date nextNewsDate = this.member.getNextNewsDate();
-//        boolean mustNotify = nextNewsDate.getTime() > System.currentTimeMillis();
-//
-//        return hasSubscribed && !noPeriod && mustNotify;
-        
-        return false;
+        if (!Framework.isDevModeSet()) {
+
+            // Member must have subscribed
+            boolean hasSubscribed = this.member.hasSubscribed();
+            if (!hasSubscribed) {
+                // Could have subscribed before
+                this.member.setNextNewsDate(index, null);
+            }
+
+            // Period subscription
+            boolean noPeriod = NewsPeriod.none.equals(this.member.getNewsPeriod());
+
+            // Date condition
+            Date nextNewsDate = this.member.getNextNewsDate();
+            boolean mustNotify = nextNewsDate != null && nextNewsDate.getTime() < System.currentTimeMillis();
+
+            return hasSubscribed && !noPeriod && mustNotify;
+
+        } else {
+            // Dev mode: filter's conditions
+            boolean filters = false;
+
+            boolean filterSubscription = Boolean.valueOf(Framework.getProperty("ottc.news.scan.dev.filter.subscr", "false"));
+
+            if (filterSubscription) {
+                boolean filterNonePeriod = Boolean.valueOf(Framework.getProperty("ottc.news.scan.dev.filter.none.period", "false"));
+                if (filterNonePeriod) {
+                    Date nextNewsDate = this.member.getNextNewsDate();
+                    filters = nextNewsDate.getTime() < System.currentTimeMillis();
+                }
+            }
+
+            return filters;
+        }
+
     }
 
     /**
@@ -96,22 +121,19 @@ public class NewsUpdater extends AbstractScanUpdater {
      */
     @Override
     public Object initialize(int index, Object scannedObject) throws Exception {
+        // Current Date initialized
+        this.currentDate = new Date();
+
         // Next news date
         Date nextNewsDate = this.member.getNextNewsDate();
 
         if (nextNewsDate == null) {
             // Member not yet notified: initialize
-            nextNewsDate = getNextNewsDate(new Date(), getParamBoundary(this.member.getNewsPeriod()));
+            nextNewsDate = getNextNewsDate(this.currentDate, getBoundaryValue(this.member.getNewsPeriod()));
             this.member.setNextNewsDate(index, nextNewsDate);
-            
-            // Set lastNewsDate to
-            this.member.setLastNewsDate(index, new Date());
-        }
-        
-        // FIXME: Due to bug?? -> yes: updateOnError
-        Date lastNewsDate = this.member.getLastNewsDate();
-        if(lastNewsDate == null){
-            this.member.setLastNewsDate(index, new Date());
+
+            // Set lastNewsDate too
+            this.member.setLastNewsDate(index, this.currentDate);
         }
 
         return this.member;
@@ -122,15 +144,16 @@ public class NewsUpdater extends AbstractScanUpdater {
      */
     @Override
     public Object update(int index, Object scannedObject) throws Exception {
-        // Next news date
-        Date nextNewsDate = this.member.getNextNewsDate();
-
-        Date newsDate = getNextNewsDate(nextNewsDate, getParamBoundary(this.member.getNewsPeriod()));
+        // LastNewsDate = previous nextNewsDate
+        Date storedNextNewsDate = ((SpaceMember) scannedObject).getNextNewsDate();
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTime(storedNextNewsDate);
+        this.member.setLastNewsDate(index, calendar.getTime());
+        
+        // Update nextNewsDate
+        Date newsDate = getNextNewsDate(this.currentDate, getBoundaryValue(this.member.getNewsPeriod()));
         this.member.setNextNewsDate(index, newsDate);
-        
-        // Update lastNewsDate
-        this.member.setLastNewsDate(index, new Date());
-        
+
         return this.member;
     }
 
@@ -141,18 +164,10 @@ public class NewsUpdater extends AbstractScanUpdater {
      * @return Date
      * @throws Exception
      */
-    public Date getNextNewsDate(Date nextBaseDate, String boundary) throws Exception {
-        // Parameter
-        String boundaryValue = (String) getParams().get(boundary);
-        
-        // For dev
-        if(Framework.isDevModeSet()){
-            boundaryValue = "2";
-        }
-        
+    public Date getNextNewsDate(Date nextBaseDate, String boundaryValue) throws Exception {
         int nextInterval = Integer.valueOf(boundaryValue).intValue();
         NewsPeriod newsPeriod = this.member.getNewsPeriod();
-        
+
         return DateUpdaterTools.initializeNextDate(newsPeriod, nextBaseDate, nextInterval);
     }
 
@@ -161,14 +176,15 @@ public class NewsUpdater extends AbstractScanUpdater {
      */
     @Override
     public Object updateOnError(int index, Object scannedObject) throws Exception {
-        // Next news date
-        Date nextNewsDate = this.member.getNextNewsDate();
-
-        Date newsDate = getNextNewsDate(nextNewsDate, getParamBoundary(NewsPeriod.error));
-        this.member.setNextNewsDate(index, newsDate);
+        // LastNewsDate = previous nextNewsDate
+        Date storedNextNewsDate = ((SpaceMember) scannedObject).getNextNewsDate();
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTime(storedNextNewsDate);
+        this.member.setLastNewsDate(index, calendar.getTime());
         
-        // Set lastNewsDate to
-        this.member.setLastNewsDate(index, newsDate);
+        // NextNewsDate
+        Date newsDate = getNextNewsDate(this.currentDate, getBoundaryValue(NewsPeriod.error));
+        this.member.setNextNewsDate(index, newsDate);
 
         return this.member;
     }
