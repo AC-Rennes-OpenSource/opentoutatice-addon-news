@@ -1,0 +1,16 @@
+opentoutatice.target=.
+
+ottc.news.scan.enabled=false
+ottc.news.scan.cron=0 0/15 20-4 * * *
+## Values in minutes
+ottc.news.scan.daily.boundary=240
+ottc.news.scan.weekly.boundary=720
+ottc.news.scan.error.boundary=120
+
+ottc.news.portal.url=http://<host>/portal/portal/cms/_id/
+
+## For news dev or tests
+# If not defined, 5 and 2 by default:
+ottc.news.scan.dev.gap=
+ottc.news.scan.dev.boundary=
+ 
