@@ -76,6 +76,9 @@ public class NewsUpdater extends AbstractScanUpdater {
      */
     @Override
     public boolean filter(int index, Object scannedObject) throws Exception {
+        // Current Date initialized
+        this.currentDate = new Date();
+        
         // Member
         this.member = (SpaceMember) this.toModel(scannedObject);
 
@@ -93,21 +96,21 @@ public class NewsUpdater extends AbstractScanUpdater {
 
             // Date condition
             Date nextNewsDate = this.member.getNextNewsDate();
-            boolean mustNotify = nextNewsDate != null && nextNewsDate.getTime() < System.currentTimeMillis();
+            boolean mustNotify = nextNewsDate != null && nextNewsDate.getTime() > this.currentDate.getTime();
 
             return hasSubscribed && !noPeriod && mustNotify;
 
         } else {
             // Dev mode: filter's conditions
-            boolean filters = false;
+            Date nextNewsDate = this.member.getNextNewsDate();
+            boolean filters = nextNewsDate.getTime() > this.currentDate.getTime();
 
             boolean filterSubscription = Boolean.valueOf(Framework.getProperty("ottc.news.scan.dev.filter.subscr", "false"));
 
             if (filterSubscription) {
                 boolean filterNonePeriod = Boolean.valueOf(Framework.getProperty("ottc.news.scan.dev.filter.none.period", "false"));
                 if (filterNonePeriod) {
-                    Date nextNewsDate = this.member.getNextNewsDate();
-                    filters = nextNewsDate.getTime() < System.currentTimeMillis();
+                    filters = nextNewsDate.getTime() < this.currentDate.getTime();
                 }
             }
 
@@ -121,9 +124,6 @@ public class NewsUpdater extends AbstractScanUpdater {
      */
     @Override
     public Object initialize(int index, Object scannedObject) throws Exception {
-        // Current Date initialized
-        this.currentDate = new Date();
-
         // Next news date
         Date nextNewsDate = this.member.getNextNewsDate();
 
