@@ -311,7 +311,7 @@ public class NewsMailer extends AbstractMailer {
      * @return DocumentModelList
      */
     protected DocumentModelList getModifiedDocs(CoreSession session, String wsId, Date lastNewsDate) {
-        String formatedDate = DateUtils.format(lastNewsDate, DateUpdaterTools.DATE_TIME_QUERY_FORMAT);
+        String formatedDate = DateFormatUtils.format(lastNewsDate, DateUpdaterTools.DATE_TIME_QUERY_FORMAT);
         String query = String.format(MODIFIED_DOCS_QUERY, wsId, formatedDate);
         if (log.isDebugEnabled()) {
             log.debug("Modifieds docs query: " + query);
@@ -328,13 +328,13 @@ public class NewsMailer extends AbstractMailer {
      * @return IterableQueryResult
      */
     protected IterableQueryResult getNewMembers(CoreSession session, String wsId, Date lastNewsDate) {
-        String formatedDate = DateUtils.format(lastNewsDate, DateUpdaterTools.DATE_TIME_QUERY_FORMAT);
+        String formatedDate = DateFormatUtils.format(lastNewsDate, DateUpdaterTools.DATE_TIME_QUERY_FORMAT);
         String query = String.format(NEW_MEMBERS_QUERY, formatedDate);
         return session.queryAndFetch(query, NXQL.NXQL, new Object[0]);
     }
 
     protected DocumentModelList getNewsDocs(CoreSession session, String wsId, Date lastNewsDate) {
-        String formatedDate = DateUtils.format(lastNewsDate, DateUpdaterTools.DATE_TIME_QUERY_FORMAT);
+        String formatedDate = DateFormatUtils.format(lastNewsDate, DateUpdaterTools.DATE_TIME_QUERY_FORMAT);
         String query = String.format(NEWS_DOCS_QUERY, wsId, formatedDate);
         if (log.isDebugEnabled()) {
             log.debug("News docs query: " + query);
