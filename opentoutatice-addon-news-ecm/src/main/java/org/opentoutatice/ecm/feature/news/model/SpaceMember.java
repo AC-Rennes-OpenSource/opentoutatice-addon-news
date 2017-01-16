@@ -160,13 +160,6 @@ public class SpaceMember {
         if (newsPeriodProp == null) {
             // For coherence
             newsPeriod = NewsPeriod.none;
-//            if (Framework.isDevModeSet()) {
-//                // None period filter
-//                Boolean filterNonePeriod = Boolean.valueOf(Framework.getProperty("ottc.news.scan.dev.filter.none.period"));
-//                if(!filterNonePeriod){
-//                    newsPeriod = NewsPeriod.none;
-//                }
-//            }
         } else {
             newsPeriod = NewsPeriod.valueOf(newsPeriodProp);
         }
@@ -186,10 +179,6 @@ public class SpaceMember {
         if (calendar != null) {
             nextDate = calendar.getTime();
         }
-        
-//        if(Framework.isDevModeSet()){
-//            nextDate = new Date();
-//        }
 
         return nextDate;
     }

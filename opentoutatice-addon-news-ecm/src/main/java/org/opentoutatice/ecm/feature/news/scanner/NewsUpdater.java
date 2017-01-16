@@ -8,6 +8,8 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.Map;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.nuxeo.runtime.api.Framework;
 import org.opentoutatice.ecm.feature.news.model.SpaceMember;
 import org.opentoutatice.ecm.feature.news.scanner.io.NewsPeriod;
@@ -19,14 +21,25 @@ import org.opentoutatice.ecm.scanner.AbstractScanUpdater;
  *
  */
 public class NewsUpdater extends AbstractScanUpdater {
+    
+    /** Logger. */
+    private static final Log log = LogFactory.getLog(NewsUpdater.class);
 
     /** Space member model. */
     private SpaceMember member;
 
     /** Current date. */
     private Date currentDate;
-
-
+    
+    /**
+     * Getter for test mode.
+     * 
+     * @return boolean
+     */
+    public static boolean isTestModeSet(){
+        return Boolean.valueOf(Framework.getProperty("ottc.news.mode.test"));
+    }
+    
     /**
      * {@inheritDoc}
      */
@@ -49,14 +62,50 @@ public class NewsUpdater extends AbstractScanUpdater {
         switch (newsPeriod) {
             case daily:
                 boundaryValue = (String) getParams().get(DateUpdaterTools.NEXT_DAILY_BOUNDARY);
+                
+                if(log.isDebugEnabled()){
+                    log.debug("[NO MODE TEST] [Period]: " + boundaryValue);
+                }
+                
+                if(isTestModeSet()){
+                    boundaryValue = Framework.getProperty("ottc.news.scan.daily.test.boundary");
+                    if(log.isDebugEnabled()){
+                        log.debug("[MODE TEST] [Period]: " + boundaryValue);
+                    }
+                }
+                
                 break;
 
             case weekly:
                 boundaryValue = (String) getParams().get(DateUpdaterTools.NEXT_WEEKLY_BOUNDARY);
+                
+                if(log.isDebugEnabled()){
+                    log.debug("[NO MODE TEST] [Period]: " + boundaryValue);
+                }
+                
+                if(isTestModeSet()){
+                    boundaryValue = Framework.getProperty("ottc.news.scan.weekly.test.boundary");
+                    if(log.isDebugEnabled()){
+                        log.debug("[MODE TEST] [Period]: " + boundaryValue);
+                    }
+                }
+                
                 break;
 
             case error:
                 boundaryValue = (String) getParams().get(DateUpdaterTools.NEXT_ERROR_BOUNDARY);
+                
+                if(log.isDebugEnabled()){
+                    log.debug("[NO MODE TEST] [Period]: " + boundaryValue);
+                }
+                
+                if(isTestModeSet()){
+                    boundaryValue = Framework.getProperty("ottc.news.scan.error.test.boundary");
+                    if(log.isDebugEnabled()){
+                        log.debug("[MODE TEST] [Period]: " + boundaryValue);
+                    }
+                }
+                
                 break;
 
             case none:
@@ -75,47 +124,57 @@ public class NewsUpdater extends AbstractScanUpdater {
      * {@inheritDoc}
      */
     @Override
-    public boolean filter(int index, Object scannedObject) throws Exception {
+    public boolean accept(int index, Object scannedObject) throws Exception {
+        // Accepts
+        boolean accepts = true;
+
         // Current Date initialized
         this.currentDate = new Date();
-        
+
         // Member
         this.member = (SpaceMember) this.toModel(scannedObject);
 
-        if (!Framework.isDevModeSet()) {
-
-            // Member must have subscribed
-            boolean hasSubscribed = this.member.hasSubscribed();
-            if (!hasSubscribed) {
-                // Could have subscribed before
-                this.member.setNextNewsDate(index, null);
-            }
-
-            // Period subscription
-            boolean noPeriod = NewsPeriod.none.equals(this.member.getNewsPeriod());
-
-            // Date condition
-            Date nextNewsDate = this.member.getNextNewsDate();
-            boolean mustNotify = nextNewsDate != null && nextNewsDate.getTime() > this.currentDate.getTime();
-
-            return hasSubscribed && !noPeriod && mustNotify;
-
-        } else {
-            // Dev mode: filter's conditions
-            Date nextNewsDate = this.member.getNextNewsDate();
-            boolean filters = nextNewsDate.getTime() > this.currentDate.getTime();
-
-            boolean filterSubscription = Boolean.valueOf(Framework.getProperty("ottc.news.scan.dev.filter.subscr", "false"));
-
-            if (filterSubscription) {
-                boolean filterNonePeriod = Boolean.valueOf(Framework.getProperty("ottc.news.scan.dev.filter.none.period", "false"));
-                if (filterNonePeriod) {
-                    filters = nextNewsDate.getTime() < this.currentDate.getTime();
-                }
-            }
-
-            return filters;
+        // Member must have subscribed
+        boolean hasSubscribed = this.member.hasSubscribed();
+        if (!hasSubscribed) {
+            // Could have subscribed before
+            this.member.setNextNewsDate(index, null);
         }
+
+        // Period subscription
+        boolean noPeriod = NewsPeriod.none.equals(this.member.getNewsPeriod());
+
+        // Date condition
+        Date nextNewsDate = this.member.getNextNewsDate();
+        boolean mustNotify = nextNewsDate != null && nextNewsDate.getTime() < this.currentDate.getTime();
+
+        accepts = hasSubscribed && !noPeriod && mustNotify;
+
+        // Debug
+        if (log.isDebugEnabled()) {
+            log.debug("[NO MODE SET] [accepts]: " + accepts + ": " + "(hasSubscribed=" + hasSubscribed + " / noPeriod=" + noPeriod + " / mustNotify="
+                    + mustNotify);
+        }
+
+        if (isTestModeSet()) {
+            // Test mode: accept conditions
+            hasSubscribed = Boolean.valueOf(Framework.getProperty("ottc.news.scan.accept.subscr.test", "false"));
+            if (noPeriod && Boolean.valueOf(Framework.getProperty("ottc.news.scan.accept.none.period.test", "false"))) {
+                noPeriod = false;
+            }
+            mustNotify = nextNewsDate != null && nextNewsDate.getTime() < this.currentDate.getTime();
+
+            accepts = hasSubscribed && !noPeriod && mustNotify;
+            
+            // Debug
+            if (log.isDebugEnabled()) {
+                log.debug("[MODE SET] [accepts]: " + accepts + ": " + "(hasSubscribed=" + hasSubscribed + " / noPeriod=" + noPeriod + " / mustNotify="
+                        + mustNotify);
+            }
+
+        }
+
+        return accepts;
 
     }
 

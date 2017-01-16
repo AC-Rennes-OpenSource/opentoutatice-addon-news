@@ -70,56 +70,89 @@ public class DateUpdaterTools {
     public static Date initializeNextDate(NewsPeriod newsPeriod, Date inputDate, int boundary) {
         // Next date
         Date nextDate = null;
+        // For debug
+        String inputStrDate = DateFormatUtils.format(inputDate, DATE_TIME_FORMAT);
 
         // Initialization
         switch (newsPeriod) {
-            case none:
-                if (Framework.isDevModeSet()) {
-                    nextDate = getNextDevRandomDate(inputDate);
-                }
-
-                break;
 
             case daily:
-                if (Framework.isDevModeSet()) {
-                    nextDate = getNextDevRandomDate(inputDate);
-                } else {
-                    // + one day at 00:00 +/- random time in boundary
-                    Date addedDayDate = DateUtils.addDays(inputDate, 1);
-                    nextDate = getNextRandomDate(addedDayDate, boundary);
+             // + one day at 00:00 +/- random time in boundary
+                Date addedDayDate = DateUtils.addDays(inputDate, 1);
+                nextDate = getNextRandomDate(addedDayDate, boundary);
+                
+                if(log.isDebugEnabled()){
+                    log.debug("[NO MODE TEST] [Daily] NextDate = " + inputStrDate + " -> " + DateFormatUtils.format(nextDate, DateUpdaterTools.DATE_TIME_FORMAT));
                 }
-
+                
+                if(NewsUpdater.isTestModeSet()){
+                 // Gap in minutes
+                    int gap = Integer.valueOf(Framework.getProperty("ottc.news.scan.daily.test.gap", "10"));
+                    nextDate = DateUtils.addMinutes(inputDate, gap);
+                    
+                    if(log.isDebugEnabled()){
+                        log.debug("[MODE TEST] [Daily] NextDate = " + inputStrDate + " -> " + DateFormatUtils.format(nextDate, DateUpdaterTools.DATE_TIME_FORMAT));
+                    }
+                }
+                
                 break;
 
             case weekly:
-                if (Framework.isDevModeSet()) {
-                    nextDate = getNextDevRandomDate(inputDate);
-                } else {
-                    // + one week at 00:00 +/- random time in boundary
-                    Date addedWeekDate = DateUtils.addWeeks(inputDate, 1);
-                    nextDate = getNextRandomDate(addedWeekDate, boundary);
+             // + one week at 00:00 +/- random time in boundary
+                Date addedWeekDate = DateUtils.addWeeks(inputDate, 1);
+                nextDate = getNextRandomDate(addedWeekDate, boundary);
+                
+                if(log.isDebugEnabled()){
+                    log.debug("[NO MODE TEST] [Weekly] NextDate = " + inputStrDate + " -> " + DateFormatUtils.format(nextDate, DateUpdaterTools.DATE_TIME_FORMAT));
+                }
+                
+
+                if(NewsUpdater.isTestModeSet()){
+                 // Gap in minutes
+                    int gap = Integer.valueOf(Framework.getProperty("ottc.news.scan.weekly.test.gap", "10"));
+                    nextDate = DateUtils.addMinutes(inputDate, gap);
+                    
+                    if(log.isDebugEnabled()){
+                        log.debug("[MODE TEST] [Weekly] NextDate = " + inputStrDate + " -> " + DateFormatUtils.format(nextDate, DateUpdaterTools.DATE_TIME_FORMAT));
+                    }
+                }
+
+                break;
+                
+            case none:
+                if(NewsUpdater.isTestModeSet()){
+                 // Gap in minutes
+                    int gap = Integer.valueOf(Framework.getProperty("ottc.news.scan.none.test.gap", "10"));
+                    nextDate = DateUtils.addMinutes(inputDate, gap);
+                    
+                    if(log.isDebugEnabled()){
+                        log.debug("[MODE TEST] [None] NextDate = " + inputStrDate + " -> " + DateFormatUtils.format(nextDate, DateUpdaterTools.DATE_TIME_FORMAT));
+                    }
                 }
 
                 break;
 
             case error:
-                if (Framework.isDevModeSet()) {
-                    nextDate = getNextDevRandomDate(inputDate);
-                } else {
-                    // + one hour +/- random time in boundary
-                    Date addedHourDate = DateUtils.addHours(inputDate, 1);
-                    nextDate = getNextRandomDate(addedHourDate, boundary);
+             // + one hour +/- random time in boundary
+                Date addedHourDate = DateUtils.addHours(inputDate, 1);
+                nextDate = getNextRandomDate(addedHourDate, boundary);
+                
+                if(log.isDebugEnabled()){
+                    log.debug("[NO MODE TEST] [Error] NextDate = " + inputStrDate + " -> " + DateFormatUtils.format(nextDate, DateUpdaterTools.DATE_TIME_FORMAT));
                 }
+                
+                if(NewsUpdater.isTestModeSet()){
+                    // Gap in minutes
+                       int gap = Integer.valueOf(Framework.getProperty("ottc.news.scan.error.test.gap", "10"));
+                       nextDate = DateUtils.addMinutes(inputDate, gap);
+                       
+                       if(log.isDebugEnabled()){
+                           log.debug("[MODE TEST] [Error] NextDate = " + inputStrDate + " -> " + DateFormatUtils.format(nextDate, DateUpdaterTools.DATE_TIME_FORMAT));
+                       }
+                   }
 
                 break;
 
-        }
-
-        // Debug
-        if (log.isDebugEnabled()) {
-            String inputStrDate = DateFormatUtils.format(inputDate, DATE_TIME_FORMAT);
-            String nextStrDate = DateFormatUtils.format(nextDate, DATE_TIME_FORMAT);
-            log.debug("Next date: " + inputStrDate + " -> " + nextStrDate);
         }
 
         return nextDate;
@@ -131,7 +164,7 @@ public class DateUpdaterTools {
      * @param inputDate
      * @return
      */
-    public static Date getNextDevRandomDate(Date inputDate) {
+    public static Date getNextTestRandomDate(Date inputDate) {
         // Gap in minutes
         int gap = Integer.valueOf(Framework.getProperty("ottc.news.scan.dev.gap", "2"));
         return DateUtils.addMinutes(inputDate, gap);
