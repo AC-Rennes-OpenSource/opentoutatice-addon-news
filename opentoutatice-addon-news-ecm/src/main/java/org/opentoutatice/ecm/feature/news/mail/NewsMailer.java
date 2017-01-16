@@ -59,7 +59,9 @@ public class NewsMailer extends AbstractMailer {
     private final static String PORTAL_URL = Framework.getProperty("ottc.news.portal.url");
     
     /** Event date format. */
-    private static final String EVENT_DATE_TIME_FORMAT = "le dd/MM/yyyy à HH:mm ";
+    private static final String EVENT_DATE_FORMAT = "dd/MM/yyyy";
+    /** Event date format. */
+    private static final String EVENT_TIME_FORMAT = "HH:mm ";
 
     /** Mail's header. */
     private Map<String, Object> header;
@@ -243,7 +245,8 @@ public class NewsMailer extends AbstractMailer {
             // Event case
             if("VEVENT".equals(doc.getType())){
                 Calendar evtCal = (GregorianCalendar) doc.getPropertyValue("vevent:dtstart");
-                news.put("evtBegin", DateUtils.format(evtCal.getTime(), EVENT_DATE_TIME_FORMAT));
+                news.put("evtBegin", "le " + DateFormatUtils.format(evtCal.getTime(), EVENT_DATE_FORMAT)
+                        + " à " + DateFormatUtils.format(evtCal.getTime(), EVENT_TIME_FORMAT));
             }
 
             // Add
