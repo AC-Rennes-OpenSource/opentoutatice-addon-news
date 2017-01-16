@@ -7,7 +7,7 @@
     <extension target="org.opentoutatice.ecm.scanner.ScannerConfigurationService" point="configuration">
         
         <schedule id="scanNewsStarter" enabled="${ottc.news.scan.enabled}">
-            <directive type="nxqlQueryAndFetch">select distinct ecm:uuid, dc:title, ttcs:spaceMembers/*1/login, ttcs:spaceMembers/*1/joinedDate, ttcs:spaceMembers/*1/newsPeriod, ttcs:spaceMembers/*1/nextNewsDate, ttcs:spaceMembers/*1/lastNewsDate from Workspace where  ttcs:spaceMembers/*1/login is not null and ecm:mixinType != 'HiddenInNavigation' and ecm:currentLifeCycleState != 'deleted' and ecm:isVersion = 0</directive>   
+            <directive type="nxqlQueryAndFetch">select distinct ecm:uuid, dc:title, ttcs:spaceMembers/*1/login, ttcs:spaceMembers/*1/joinedDate, ttcs:spaceMembers/*1/newsPeriod, ttcs:spaceMembers/*1/nextNewsDate, ttcs:spaceMembers/*1/lastNewsDate from Workspace where  ttcs:spaceMembers/*1/login is not null and ecm:mixinType != 'HiddenInNavigation' and ecm:currentLifeCycleState != 'deleted' and ecm:isVersion = 0 order by ecm:uuid</directive>   
             <updater class="org.opentoutatice.ecm.feature.news.scanner.NewsUpdater">
                 <param name="nextDailyBoundary">${ottc.news.scan.daily.boundary}</param>
                 <param name="nextWeeklyBoundary">${ottc.news.scan.weekly.boundary}</param>

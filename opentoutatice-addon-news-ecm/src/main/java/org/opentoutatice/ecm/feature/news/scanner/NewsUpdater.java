@@ -31,6 +31,39 @@ public class NewsUpdater extends AbstractScanUpdater {
     /** Current date. */
     private Date currentDate;
     
+//    /** Space id. */
+//    private static String spaceId;
+//    /** Space id changer. */
+//    private static boolean spaceIdChanged = false;
+//    
+//    /**
+//     * @return the spaceId
+//     */
+//    public static  String getSpaceId() {
+//        return spaceId;
+//    }
+//
+//    /**
+//     * @param spaceId the spaceId to set
+//     */
+//    public static void setSpaceId(String spaceId) {
+//        NewsUpdater.spaceId = spaceId;
+//    }
+    
+//    /**
+//     * @return the spaceIdChanged
+//     */
+//    public static boolean hasSpaceIdChanged() {
+//        return spaceIdChanged;
+//    }
+//
+//    /**
+//     * @param spaceIdChanged the spaceIdChanged to set
+//     */
+//    public static void setSpaceIdChanged(boolean spaceIdChanged) {
+//        NewsUpdater.spaceIdChanged = spaceIdChanged;
+//    }
+
     /**
      * Getter for test mode.
      * 
@@ -184,6 +217,11 @@ public class NewsUpdater extends AbstractScanUpdater {
      */
     @Override
     public Object initialize(int index, Object scannedObject) throws Exception {
+        //
+//        if(hasSpaceIdChanged()){
+//            index = 0;
+//        }
+        
         // Next news date
         Date nextNewsDate = this.member.getNextNewsDate();
 
@@ -204,6 +242,11 @@ public class NewsUpdater extends AbstractScanUpdater {
      */
     @Override
     public Object update(int index, Object scannedObject) throws Exception {
+        //
+//        if(hasSpaceIdChanged()){
+//            index = 0;
+//        }
+        
         // LastNewsDate = previous nextNewsDate
         Date storedNextNewsDate = ((SpaceMember) scannedObject).getNextNewsDate();
         Calendar calendar = Calendar.getInstance();

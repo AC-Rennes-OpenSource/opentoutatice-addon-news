@@ -4,15 +4,19 @@
 package org.opentoutatice.ecm.feature.news.model;
 
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.TimeZone;
 
 import javax.security.auth.login.LoginException;
 
+import org.apache.commons.lang.StringUtils;
+import org.nuxeo.ecm.core.api.ClientException;
 import org.nuxeo.ecm.core.api.CoreInstance;
 import org.nuxeo.ecm.core.api.CoreSession;
 import org.nuxeo.ecm.core.api.DocumentModel;
@@ -23,6 +27,7 @@ import org.nuxeo.runtime.api.Framework;
 import org.opentoutatice.ecm.feature.news.scanner.io.NewsPeriod;
 
 import fr.toutatice.ecm.platform.core.helper.ToutaticeDocumentHelper;
+import fr.toutatice.ecm.platform.core.helper.ToutaticeSilentProcessRunnerHelper;
 
 
 /**
@@ -96,6 +101,19 @@ public class SpaceMember {
         // Space
         String spaceId = (String) this.data.get(SpaceMemberConstants.SPACE_ID);
         this.space = ToutaticeDocumentHelper.getUnrestrictedDocument(this.session, spaceId);
+        
+        // Previous treated space if any
+//        if(NewsUpdater.getSpaceId() == null){
+//            NewsUpdater.setSpaceId(spaceId);
+//        }
+//        else {
+//            if(!StringUtils.equals(NewsUpdater.getSpaceId(), spaceId)){
+//                NewsUpdater.setSpaceId(spaceId);
+//                NewsUpdater.setSpaceIdChanged(true);
+//            } else {
+//                NewsUpdater.setSpaceIdChanged(false);
+//            }
+//        }
     }
 
     /**
@@ -194,11 +212,29 @@ public class SpaceMember {
         calendar.setTimeZone(TimeZone.getTimeZone("Europe/Berlin"));
         calendar.setTime(nextNewsDate);
         this.data.put(SpaceMemberConstants.NEXT_NEWS_DATE_DATA, calendar);
-
-        // Update
-        this.space.setPropertyValue("ttcs:spaceMembers/[" + index + "]/nextNewsDate", nextNewsDate);
-        // Save
-        ToutaticeDocumentHelper.saveDocumentSilently(this.session, this.space, true);
+        
+        String dataLogin = (String) this.data.get(SpaceMemberConstants.LOGIN_DATA);
+//        List<Map<String, Serializable>> props = (ArrayList<Map<String,Serializable>>) this.space.getPropertyValue("ttcs:spaceMembers");
+//        if(props != null){
+//            for(Map<String, Serializable> prop : props){
+//                if(prop != null){
+//                    String login = (String) prop.get("login");
+//                    if(StringUtils.equals(dataLogin, login)){
+//                        prop.put("nextNewsDate", nextNewsDate);
+//                    }
+//                }
+//            }
+//        }
+//        this.space.setPropertyValue("ttcs:spaceMembers", (Serializable) props);
+//
+//        // Update
+////        this.space.setPropertyValue("ttcs:spaceMembers/[" + index + "]/nextNewsDate", nextNewsDate);
+//        // Save
+//        ToutaticeDocumentHelper.saveDocumentSilently(this.session, this.space, true);
+        
+        SilentUpdate update = new SilentUpdate(session, space, dataLogin, nextNewsDate, "nextNewsDate");
+        update.runUnrestricted();
+        
     }
 
     /**
@@ -228,11 +264,29 @@ public class SpaceMember {
         calendar.setTimeZone(TimeZone.getTimeZone("Europe/Berlin"));
         calendar.setTime(lastNewsDate);
         this.data.put(SpaceMemberConstants.LAST_NEWS_DATE_DATA, calendar);
-
-        // Update
-        this.space.setPropertyValue("ttcs:spaceMembers/[" + index + "]/lastNewsDate", lastNewsDate);
-        // Save
-        ToutaticeDocumentHelper.saveDocumentSilently(this.session, this.space, true);
+        
+        String dataLogin = (String) this.data.get(SpaceMemberConstants.LOGIN_DATA);
+//        List<Map<String, Serializable>> props = (ArrayList<Map<String,Serializable>>) this.space.getPropertyValue("ttcs:spaceMembers");
+//        if(props != null){
+//            for(Map<String, Serializable> prop : props){
+//                if(prop != null){
+//                    String login = (String) prop.get("login");
+//                    if(StringUtils.equals(dataLogin, login)){
+//                        prop.put("nextNewsDate", lastNewsDate);
+//                    }
+//                }
+//            }
+//        }
+//        this.space.setPropertyValue("ttcs:spaceMembers", (Serializable) props);
+//
+//        // Update
+////        this.space.setPropertyValue("ttcs:spaceMembers/[" + index + "]/lastNewsDate", lastNewsDate);
+//        // Save
+//        ToutaticeDocumentHelper.saveDocumentSilently(this.session, this.space, true);
+        
+        SilentUpdate update = new SilentUpdate(session, space, dataLogin, lastNewsDate, "lastNewsDate");
+        update.runUnrestricted();
+        
     }
 
     /**
@@ -252,6 +306,44 @@ public class SpaceMember {
         prop.put(SpaceConstants.NEXT_NEWS_DATE, this.data.get(SpaceMemberConstants.NEXT_NEWS_DATE_DATA));
 
         return prop;
+    }
+    
+    /**
+     * Save a document in an silent way.
+     */
+    public static class SilentUpdate extends ToutaticeSilentProcessRunnerHelper {
+
+        private DocumentModel space;
+        private Date date;
+        private String dataLogin;
+        private String dateIdent;
+
+        protected SilentUpdate(CoreSession session, DocumentModel document, String dataLogin, Date date, String dateIdent) {
+            super(session);
+            this.space = document;
+            this.date = date;
+            this.dataLogin = dataLogin;
+            this.dateIdent = dateIdent;
+        }
+
+        @Override
+        public void run() throws ClientException {
+            List<Map<String, Serializable>> props = (ArrayList<Map<String,Serializable>>) this.space.getPropertyValue("ttcs:spaceMembers");
+            if(props != null){
+                for(Map<String, Serializable> prop : props){
+                    if(prop != null){
+                        String login = (String) prop.get("login");
+                        if(StringUtils.equals(dataLogin, login)){
+                            prop.put(this.dateIdent, this.date);
+                        }
+                    }
+                }
+            }
+            this.space.setPropertyValue("ttcs:spaceMembers", (Serializable) props);
+            
+            this.session.saveDocument(space);
+        }
+
     }
 
 }
