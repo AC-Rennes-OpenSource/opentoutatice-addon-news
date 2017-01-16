@@ -146,7 +146,8 @@ public class NewsUpdater extends AbstractScanUpdater {
 
         // Date condition
         Date nextNewsDate = this.member.getNextNewsDate();
-        boolean mustNotify = nextNewsDate != null && nextNewsDate.getTime() < this.currentDate.getTime();
+        // nextNewsDat is null if just subscribed
+        boolean mustNotify = nextNewsDate == null || (nextNewsDate != null && nextNewsDate.getTime() < this.currentDate.getTime());
 
         accepts = hasSubscribed && !noPeriod && mustNotify;
 
@@ -162,7 +163,7 @@ public class NewsUpdater extends AbstractScanUpdater {
             if (noPeriod && Boolean.valueOf(Framework.getProperty("ottc.news.scan.accept.none.period.test", "false"))) {
                 noPeriod = false;
             }
-            mustNotify = nextNewsDate != null && nextNewsDate.getTime() < this.currentDate.getTime();
+            mustNotify = nextNewsDate == null || (nextNewsDate != null && nextNewsDate.getTime() < this.currentDate.getTime());
 
             accepts = hasSubscribed && !noPeriod && mustNotify;
             
