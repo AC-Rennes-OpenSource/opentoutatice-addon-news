@@ -92,7 +92,8 @@ public class SpaceMember {
 
         // Initialize session
         Framework.loginAsUser(login);
-        this.session = CoreInstance.openCoreSession(null, login);
+        NuxeoPrincipal principal = getUsermanager().getPrincipal(login);
+        this.session = CoreInstance.openCoreSession(null, principal);
 
         // User profile
         UserProfileService usrProfileSrv = (UserProfileService) Framework.getService(UserProfileService.class);
