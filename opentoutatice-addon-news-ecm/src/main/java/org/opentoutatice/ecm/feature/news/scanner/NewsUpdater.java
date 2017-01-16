@@ -159,7 +159,7 @@ public class NewsUpdater extends AbstractScanUpdater {
 
         if (isTestModeSet()) {
             // Test mode: accept conditions
-            hasSubscribed = Boolean.valueOf(Framework.getProperty("ottc.news.scan.accept.subscr.test", "false"));
+            hasSubscribed = hasSubscribed ? hasSubscribed : Boolean.valueOf(Framework.getProperty("ottc.news.scan.accept.subscr.test", "false"));
             if (noPeriod && Boolean.valueOf(Framework.getProperty("ottc.news.scan.accept.none.period.test", "false"))) {
                 noPeriod = false;
             }
