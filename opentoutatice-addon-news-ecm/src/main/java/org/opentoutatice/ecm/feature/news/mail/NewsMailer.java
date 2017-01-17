@@ -62,6 +62,9 @@ public class NewsMailer extends AbstractMailer {
     private static final String EVENT_DATE_FORMAT = "dd/MM/yyyy";
     /** Event date format. */
     private static final String EVENT_TIME_FORMAT = "HH:mm ";
+    
+    /** Send mail indicator. */
+    private boolean sends = true;
 
     /** Mail's header. */
     private Map<String, Object> header;
@@ -130,6 +133,7 @@ public class NewsMailer extends AbstractMailer {
 
             // Mofified documents
             DocumentModelList modifiedDocs = getModifiedDocs(member.getSession(), spaceId, lastNewsDate);
+            boolean areModDocs = modifiedDocs != null && modifiedDocs.size() > 0;
             setActivities(modifiedDocs);
             
             if (log.isDebugEnabled() && modifiedDocs != null) {
@@ -147,9 +151,14 @@ public class NewsMailer extends AbstractMailer {
             try {
                 // Members
                 newMembers = getNewMembers(session, spaceId, lastNewsDate);
+                boolean hasNewMbrs = newMembers != null && newMembers.size() > 0; 
                 // News
                 DocumentModelList newsDocs = getNewsDocs(session, spaceId, lastNewsDate);
+                boolean hasNews = newsDocs != null && newsDocs.size() > 0;
                 setNews(newMembers.size(), newsDocs);
+                
+                // Sends mail
+                this.sends = areModDocs || hasNewMbrs || hasNews;
                 
                 if (log.isDebugEnabled() && newsDocs != null) {
                     DocumentModel space = ToutaticeDocumentHelper.getUnrestrictedDocument(session, member.getSpaceId());
@@ -354,6 +363,13 @@ public class NewsMailer extends AbstractMailer {
     protected String getPortalLink(DocumentModel doc){
         String id = (String) doc.getPropertyValue(ToutaticeNuxeoStudioConst.CST_DOC_SCHEMA_TOUTATICE_WEBID);
         return PORTAL_URL + id;
+    }
+    
+    @Override
+    public void send(Object content) throws Exception {
+        if(this.sends){
+            super.send(content);
+        }
     }
 
 
