@@ -3,14 +3,17 @@
  */
 package org.opentoutatice.ecm.feature.news.mail;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.time.DateFormatUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -19,10 +22,12 @@ import org.nuxeo.ecm.core.api.CoreSession;
 import org.nuxeo.ecm.core.api.DocumentModel;
 import org.nuxeo.ecm.core.api.DocumentModelList;
 import org.nuxeo.ecm.core.api.IterableQueryResult;
+import org.nuxeo.ecm.core.api.NuxeoPrincipal;
 import org.nuxeo.ecm.core.query.sql.NXQL;
 import org.nuxeo.ecm.platform.ec.notification.NotificationConstants;
 import org.nuxeo.runtime.api.Framework;
 import org.opentoutatice.ecm.feature.news.model.SpaceMember;
+import org.opentoutatice.ecm.feature.news.model.SpaceMemberConstants;
 import org.opentoutatice.ecm.feature.news.scanner.DateUpdaterTools;
 import org.opentoutatice.ecm.reporter.AbstractMailer;
 
@@ -54,15 +59,15 @@ public class NewsMailer extends AbstractMailer {
 
     /** Max displayed news and activities. */
     private final static int MAX_DISPLAYED = 10;
-    
+
     /** Portal url. */
     private final static String PORTAL_URL = Framework.getProperty("ottc.news.portal.url");
-    
+
     /** Event date format. */
     private static final String EVENT_DATE_FORMAT = "dd/MM/yyyy";
     /** Event date format. */
     private static final String EVENT_TIME_FORMAT = "HH:mm ";
-    
+
     /** Send mail indicator. */
     private boolean sends = true;
 
@@ -133,13 +138,12 @@ public class NewsMailer extends AbstractMailer {
 
             // Mofified documents
             DocumentModelList modifiedDocs = getModifiedDocs(member.getSession(), spaceId, lastNewsDate);
-            boolean areModDocs = modifiedDocs != null && modifiedDocs.size() > 0;
-            setActivities(modifiedDocs);
-            
+            setActivities(member.getLogin(), modifiedDocs);
+
             if (log.isDebugEnabled() && modifiedDocs != null) {
                 DocumentModel space = ToutaticeDocumentHelper.getUnrestrictedDocument(session, member.getSpaceId());
-                log.debug("[" + space.getTitle() + " : " +session.getPrincipal().getName() + "] "
-                        + "[Last Notif: " + DateFormatUtils.format(lastNewsDate, DateUpdaterTools.DATE_TIME_FORMAT) + "]");
+                log.debug("[" + space.getTitle() + " : " + session.getPrincipal().getName() + "] " + "[Last Notif: "
+                        + DateFormatUtils.format(lastNewsDate, DateUpdaterTools.DATE_TIME_FORMAT) + "]");
                 log.debug("[" + modifiedDocs.size() + "] MODIFIED DOCS");
                 for (DocumentModel doc : modifiedDocs) {
                     log.debug(doc.getTitle() + " ; ");
@@ -151,19 +155,18 @@ public class NewsMailer extends AbstractMailer {
             try {
                 // Members
                 newMembers = getNewMembers(session, spaceId, lastNewsDate);
-                boolean hasNewMbrs = newMembers != null && newMembers.size() > 0; 
+
+                // New members size
+                int newMembersCount = excludeHimSelf(member.getLogin(), newMembers);
+
                 // News
                 DocumentModelList newsDocs = getNewsDocs(session, spaceId, lastNewsDate);
-                boolean hasNews = newsDocs != null && newsDocs.size() > 0;
-                setNews(newMembers.size(), newsDocs);
-                
-                // Sends mail
-                this.sends = areModDocs || hasNewMbrs || hasNews;
-                
+                setNews(member.getLogin(), newMembersCount, newsDocs);
+
                 if (log.isDebugEnabled() && newsDocs != null) {
                     DocumentModel space = ToutaticeDocumentHelper.getUnrestrictedDocument(session, member.getSpaceId());
-                    log.debug("[" + space.getTitle() + " : " +session.getPrincipal().getName() + "] "
-                            + "[Last Notif: " + DateFormatUtils.format(lastNewsDate, DateUpdaterTools.DATE_TIME_FORMAT) + "]");
+                    log.debug("[" + space.getTitle() + " : " + session.getPrincipal().getName() + "] " + "[Last Notif: "
+                            + DateFormatUtils.format(lastNewsDate, DateUpdaterTools.DATE_TIME_FORMAT) + "]");
                     log.debug("[" + newsDocs.size() + "] NEWS");
                     for (DocumentModel doc : newsDocs) {
                         log.debug(doc.getTitle() + " ; ");
@@ -212,22 +215,19 @@ public class NewsMailer extends AbstractMailer {
         getData().putAll(this.header);
     }
 
-    public void setNews(long newMembersCount, DocumentModelList docs) {
+    public void setNews(String currentLogin, long newMembersCount, DocumentModelList docs) {
         this.news = new HashMap<>();
         // Display news in mail indicator
         boolean display = false;
 
         // New members
         this.news.put("newMembersCount", newMembersCount);
-        if(newMembersCount > 0){
+        if (newMembersCount > 0) {
             display = true;
         }
 
-        // Number of documents to display
+        // Number of documents to treat
         int maxLoops = docs.size() > 0 && docs.size() > MAX_DISPLAYED ? MAX_DISPLAYED : docs.size();
-        if(maxLoops > 0){
-            display = true;
-        }
 
         // Number of documents not displayed
         int otherDocsCount = 0 < maxLoops && docs.size() < maxLoops ? 0 : docs.size() - maxLoops;
@@ -237,47 +237,33 @@ public class NewsMailer extends AbstractMailer {
         List<Map<String, Object>> newsList = new ArrayList<>(maxLoops);
         for (int index = 0; index < maxLoops; index++) {
             // Document
-            Map<String, Object> news = new HashMap<>();
             DocumentModel doc = docs.get(index);
-            news.put("doc", doc);
-            // We put title cause getTitle is not a bean getter (cf DocumentModelImpl)
-            news.put("title", doc.getTitle());
-            
-            // Portal link
-            news.put("link", getPortalLink(doc));
-            // Date modification
-            GregorianCalendar calendar = (GregorianCalendar) doc.getPropertyValue("dc:modified");
-            news.put("modified", DateUtils.format(calendar.getTime(), AbstractMailer.DATE_FORMAT));
-            // Last contributor
-            news.put("lastContributor", doc.getPropertyValue("dc:lastContributor"));
-            
-            // Event case
-            if("VEVENT".equals(doc.getType())){
-                Calendar evtCal = (GregorianCalendar) doc.getPropertyValue("vevent:dtstart");
-                news.put("evtBegin", "le " + DateFormatUtils.format(evtCal.getTime(), EVENT_DATE_FORMAT)
-                        + " à " + DateFormatUtils.format(evtCal.getTime(), EVENT_TIME_FORMAT));
-            }
-
+            // Build
+            Map<String, Object> news = buildUnitData(currentLogin, doc);
             // Add
-            newsList.add(news);
+            if(!news.isEmpty()){
+                newsList.add(news);
+            }
         }
 
         this.news.put("docs", newsList);
-        
+
         // Indicator
+        display = newsList.size() > 0 || newMembersCount > 0;
         this.news.put("display", display);
+        
+        // Sends mail indicator
+        this.sends = this.sends || display;
 
         // Global data
         getData().put("news", this.news);
     }
 
-    public void setActivities(DocumentModelList docs) {
+    public void setActivities(String currentLogin, DocumentModelList docs) {
         this.activities = new HashMap<>();
 
         // Number of documents to display
         int maxLoops = docs.size() > 0 && docs.size() > MAX_DISPLAYED ? MAX_DISPLAYED : docs.size();
-        // Display activities in mail indicator
-        boolean display = maxLoops > 0;
 
         // Number of documents not displayed
         int otherDocsCount = 0 < maxLoops && docs.size() < maxLoops ? 0 : docs.size() - maxLoops;
@@ -287,31 +273,67 @@ public class NewsMailer extends AbstractMailer {
         List<Map<String, Object>> activities = new ArrayList<>(maxLoops);
         for (int index = 0; index < maxLoops; index++) {
             // Document
-            Map<String, Object> activity = new HashMap<>();
             DocumentModel doc = docs.get(index);
-            activity.put("doc", doc);
-            // We put title cause getTitle is not a bean getter (cf DocumentModelImpl)
-            activity.put("title", doc.getTitle());
-            
-            // Portal link
-            activity.put("link", getPortalLink(doc));
-            // Date modification
-            Calendar calendar = (GregorianCalendar) doc.getPropertyValue("dc:modified");
-            activity.put("modified", DateUtils.format(calendar.getTime(), AbstractMailer.DATE_FORMAT));
-            // Last contributor
-            activity.put("lastContributor", doc.getPropertyValue("dc:lastContributor"));
-            
+            // Build
+            Map<String, Object> activity = buildUnitData(currentLogin, doc);
             // Add
-            activities.add(activity);
+            if(!activity.isEmpty()){
+                activities.add(activity);
+            }
         }
 
         this.activities.put("docs", activities);
-        
+
         // Indicator
+        boolean display = activities.size() > 0;
         this.activities.put("display", display);
+        
+        // Sends mail indicator
+        this.sends = display;
 
         // Global data
         getData().put("activities", this.activities);
+    }
+
+    /**
+     * 
+     * @param currentLogin
+     * @param doc
+     * @return
+     */
+    public Map<String, Object> buildUnitData(String currentLogin, DocumentModel doc) {
+        // Data
+        Map<String, Object> data = new HashMap<>(5);
+
+        // Do not store own modified docs
+        String lastContributor = (String) doc.getPropertyValue("dc:lastContributor");
+        if (!StringUtils.equals(currentLogin, lastContributor)) {
+
+            data.put("doc", doc);
+            // We put title cause getTitle is not a bean getter (cf DocumentModelImpl)
+            data.put("title", doc.getTitle());
+
+            // Portal link
+            data.put("link", getPortalLink(doc));
+            // Date modification
+            Calendar calendar = (GregorianCalendar) doc.getPropertyValue("dc:modified");
+            data.put("modified", DateUtils.format(calendar.getTime(), AbstractMailer.DATE_FORMAT));
+            // Last contributor
+
+            data.put("lastContributor", getDisplayedName(lastContributor));
+
+            // Event case
+            if ("VEVENT".equals(doc.getType())) {
+                Calendar evtCal = (GregorianCalendar) doc.getPropertyValue("vevent:dtstart");
+                data.put(
+                        "evtBegin",
+                        "le " + DateFormatUtils.format(evtCal.getTime(), EVENT_DATE_FORMAT) + " à "
+                                + DateFormatUtils.format(evtCal.getTime(), EVENT_TIME_FORMAT));
+            }
+
+        }
+
+        return data;
     }
 
     /**
@@ -353,21 +375,65 @@ public class NewsMailer extends AbstractMailer {
         }
         return session.query(query);
     }
-    
+
     /**
-     * Gets portal document's link with webId. 
+     * Excludes current user of new users of its space.
+     * 
+     * @param currentLogin
+     * @param newMembers
+     * @return newMembers's size
+     */
+    protected int excludeHimSelf(String currentLogin, IterableQueryResult newMembers) {
+        int newMembersCount = 0;
+        if (newMembers != null) {
+            Iterator<Map<String, Serializable>> iterator = newMembers.iterator();
+            // Count
+            while (iterator.hasNext()) {
+                String login = (String) iterator.next().get(SpaceMemberConstants.LOGIN_DATA);
+                // Check login
+                if (!StringUtils.equals(currentLogin, login)) {
+                    newMembersCount++;
+                }
+            }
+        }
+
+        return newMembersCount;
+    }
+
+    /**
+     * Getter for first and last names.
+     * 
+     * @param login
+     * @return displayed name
+     */
+    protected String getDisplayedName(String login) {
+        // Displayed name
+        String dName = StringUtils.EMPTY;
+
+        // Get Nx principal
+        NuxeoPrincipal principal = SpaceMember.getUsermanager().getPrincipal(login);
+
+        if (principal != null) {
+            dName = principal.getFirstName() + " " + principal.getLastName();
+        }
+
+        return dName;
+    }
+
+    /**
+     * Gets portal document's link with webId.
      * 
      * @param doc
      * @return
      */
-    protected String getPortalLink(DocumentModel doc){
+    protected String getPortalLink(DocumentModel doc) {
         String id = (String) doc.getPropertyValue(ToutaticeNuxeoStudioConst.CST_DOC_SCHEMA_TOUTATICE_WEBID);
         return PORTAL_URL + id;
     }
-    
+
     @Override
     public void send(Object content) throws Exception {
-        if(this.sends){
+        if (this.sends) {
             super.send(content);
         }
     }

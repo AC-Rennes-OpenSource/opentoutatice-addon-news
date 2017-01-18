@@ -96,14 +96,14 @@ public class NewsUpdater extends AbstractScanUpdater {
             case daily:
                 boundaryValue = (String) getParams().get(DateUpdaterTools.NEXT_DAILY_BOUNDARY);
                 
-                if(log.isDebugEnabled()){
-                    log.debug("[NO MODE TEST] [Period]: " + boundaryValue);
+                if(log.isTraceEnabled()){
+                    log.trace("[NO MODE TEST] [Period]: " + boundaryValue);
                 }
                 
                 if(isTestModeSet()){
                     boundaryValue = Framework.getProperty("ottc.news.scan.daily.test.boundary");
                     if(log.isDebugEnabled()){
-                        log.debug("[MODE TEST] [Period]: " + boundaryValue);
+                        log.trace("[MODE TEST] [Period]: " + boundaryValue);
                     }
                 }
                 
@@ -112,14 +112,14 @@ public class NewsUpdater extends AbstractScanUpdater {
             case weekly:
                 boundaryValue = (String) getParams().get(DateUpdaterTools.NEXT_WEEKLY_BOUNDARY);
                 
-                if(log.isDebugEnabled()){
-                    log.debug("[NO MODE TEST] [Period]: " + boundaryValue);
+                if(log.isTraceEnabled()){
+                    log.trace("[NO MODE TEST] [Period]: " + boundaryValue);
                 }
                 
                 if(isTestModeSet()){
                     boundaryValue = Framework.getProperty("ottc.news.scan.weekly.test.boundary");
-                    if(log.isDebugEnabled()){
-                        log.debug("[MODE TEST] [Period]: " + boundaryValue);
+                    if(log.isTraceEnabled()){
+                        log.trace("[MODE TEST] [Period]: " + boundaryValue);
                     }
                 }
                 
@@ -128,14 +128,14 @@ public class NewsUpdater extends AbstractScanUpdater {
             case error:
                 boundaryValue = (String) getParams().get(DateUpdaterTools.NEXT_ERROR_BOUNDARY);
                 
-                if(log.isDebugEnabled()){
-                    log.debug("[NO MODE TEST] [Period]: " + boundaryValue);
+                if(log.isTraceEnabled()){
+                    log.trace("[NO MODE TEST] [Period]: " + boundaryValue);
                 }
                 
                 if(isTestModeSet()){
                     boundaryValue = Framework.getProperty("ottc.news.scan.error.test.boundary");
-                    if(log.isDebugEnabled()){
-                        log.debug("[MODE TEST] [Period]: " + boundaryValue);
+                    if(log.isTraceEnabled()){
+                        log.trace("[MODE TEST] [Period]: " + boundaryValue);
                     }
                 }
                 

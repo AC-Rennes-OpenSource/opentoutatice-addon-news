@@ -70,7 +70,7 @@ public class SpaceMember {
      * 
      * @return UserManager
      */
-    protected static UserManager getUsermanager() {
+    public static UserManager getUsermanager() {
         if (usrManager == null) {
             usrManager = (UserManager) Framework.getService(UserManager.class);
         }
@@ -124,6 +124,13 @@ public class SpaceMember {
      */
     public boolean hasSubscribed() {
         return (Boolean) this.userProfile.getPropertyValue(SpaceMemberConstants.NEWS_SUBSCRIPTION);
+    }
+    
+    /**
+     * Getter for login.
+     */
+    public String getLogin() {
+        return (String) this.data.get(SpaceMemberConstants.LOGIN_DATA);
     }
 
     /**

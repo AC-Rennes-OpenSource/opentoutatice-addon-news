@@ -1,14 +1,21 @@
 <html>
     <body>
+    
         <#if news.display >
         
             <h3>Nouveautés de votre espace ${spaceTitle}</h3>
             
-            <p>${news.newMembersCount} personnes ont rejoint votre espace.</p>
+            <#if news.newMembersCount gt 0>
+                <#if news.newMembersCount == 1>
+                    <p>${news.newMembersCount} personne a rejoint votre espace.</p>
+                <#else>
+                    <p>${news.newMembersCount} personnes ont rejoint votre espace.</p>
+                </#if>
+            </#if>
             
-            <ul style="list-style-type: none">
+            <ul style="list-style-type: none; margin-left:0; padding-left: 0;">
                 <#list news.docs as docItem >
-                    <li><a href="${docItem.link}">${docItem.title}</a>, ${docItem.evtBegin}par ${docItem.lastContributor}</li>
+                    <li style="margin-left:0;"><a href="${docItem.link}">${docItem.title}</a>, ${docItem.evtBegin}par ${docItem.lastContributor}</li>
                 </#list>
             </ul>
             
@@ -20,11 +27,15 @@
        
        <#if activities.display >
         
-         <h3>Dernières contributions</h3>
+           <#if news.display>
+                <h3>Dernières contributions</h3>
+           <#else>
+                <h3>Dernières contributions de votre espace ${spaceTitle}</h3>
+           </#if>
         
-         <ul style="list-style-type: none">
+         <ul style="list-style-type: none; margin-left:0; padding-left: 0;">
             <#list activities.docs as docItem >
-                <li><a href="${docItem.link}">${docItem.title}</a> (${docItem.doc.type}), le ${docItem.modified} par ${docItem.lastContributor}</li>
+                <li style="margin-left:0;"><a href="${docItem.link}">${docItem.title}</a>, le ${docItem.modified} par ${docItem.lastContributor}</li>
             </#list>
          </ul>
         
@@ -33,10 +44,6 @@
          </#if>
         
       </#if>
-        
-     <#if !news.display && !activities.display >
-     Aucune activité ou contribution depuis le ${lastSendDate}.
-     </#if>
      
     </body>
 </html>
