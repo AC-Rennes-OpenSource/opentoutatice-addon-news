@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 
 	<modelVersion>4.0.0</modelVersion>
 
@@ -13,29 +14,21 @@
 	<packaging>zip</packaging>
 	<name>News addon - marketplace</name>
 
-	<properties>
-		<nuxeo.cap.distribution.version>6.0</nuxeo.cap.distribution.version>
-	</properties>
+	<dependencies>
+		<dependency>
+			<groupId>org.nuxeo.ecm.distribution</groupId>
+			<artifactId>nuxeo-distribution-cap</artifactId>
+			<type>pom</type>
+		</dependency>
+	</dependencies>
 
-	<dependencyManagement>
-		<dependencies>
-			<dependency>
-				<groupId>org.nuxeo.ecm.distribution</groupId>
-				<artifactId>nuxeo-distribution</artifactId>
-				<version>${nuxeo.version}</version>
-				<type>pom</type>
-				<scope>import</scope>
-			</dependency>
-		</dependencies>
-	</dependencyManagement>
-	
 	<build>
 		<plugins>
 			<plugin>
 				<groupId>org.nuxeo.build</groupId>
-					<artifactId>ant-assembly-maven-plugin</artifactId>
-					<version>2.0.1</version>
-					<extensions>true</extensions>
+				<artifactId>ant-assembly-maven-plugin</artifactId>
+				<version>2.0.1</version>
+				<extensions>true</extensions>
 				<configuration>
 					<buildFiles>
 						<buildFile>${basedir}/src/main/assemble/assembly.xml</buildFile>

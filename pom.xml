@@ -25,14 +25,6 @@
 		<dependencies>
 			<dependency>
 				<groupId>org.nuxeo.ecm.distribution</groupId>
-				<artifactId>nuxeo-distribution</artifactId>
-				<version>${nuxeo.version}</version>
-				<type>pom</type>
-				<scope>import</scope>
-			</dependency>
-
-			<dependency>
-				<groupId>org.nuxeo.ecm.distribution</groupId>
 				<artifactId>nuxeo-distribution-cap</artifactId>
 				<version>${nuxeo.cap.distribution.version}</version>
 				<type>pom</type>

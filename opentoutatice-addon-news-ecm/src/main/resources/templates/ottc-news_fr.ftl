@@ -15,12 +15,16 @@
             
             <ul style="list-style-type: none; margin-left:0; padding-left: 0;">
                 <#list news.docs as docItem >
-                    <li style="margin-left:0;"><a href="${docItem.link}">${docItem.title}</a>, ${docItem.evtBegin}par ${docItem.lastContributor}</li>
+                    <li style="margin-left:0;"><a href="${docItem.link}" style="text-decoration: none;">${docItem.title}</a>, ${docItem.evtBegin}par ${docItem.lastContributor}</li>
                 </#list>
             </ul>
             
             <#if news.otherDocsCount gt 0 >
-            ... et ${news.otherDocsCount} autres actualités depuis le ${lastSendDate}.
+                <#if news.otherDocsCount gt 1 >
+                ... et ${news.otherDocsCount} autres actualités depuis le ${lastSendDate}.
+                <#else>
+                ... et ${news.otherDocsCount} autre actualité depuis le ${lastSendDate}.
+                </#if>
             </#if>
             
        </#if>
@@ -35,12 +39,16 @@
         
          <ul style="list-style-type: none; margin-left:0; padding-left: 0;">
             <#list activities.docs as docItem >
-                <li style="margin-left:0;"><a href="${docItem.link}">${docItem.title}</a>, le ${docItem.modified} par ${docItem.lastContributor}</li>
+                <li style="margin-left:0;"><a href="${docItem.link}" style="text-decoration: none;">${docItem.title}</a>, le ${docItem.modified} par ${docItem.lastContributor}</li>
             </#list>
          </ul>
         
          <#if activities.otherDocsCount gt 0 >
-         ... et ${activities.otherDocsCount} autres contributions depuis le ${lastSendDate}.
+            <#if activities.otherDocsCount gt 1 >
+                ... et ${activities.otherDocsCount} autres contributions depuis le ${lastSendDate}.
+                <#else>
+                ... et ${activities.otherDocsCount} autre contribution depuis le ${lastSendDate}.
+                </#if>
          </#if>
         
       </#if>

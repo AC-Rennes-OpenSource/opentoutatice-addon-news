@@ -28,8 +28,8 @@ public class DateToolsTest {
       Date nextWDate = DateUpdaterTools.initializeTestNextDate(NewsPeriod.weekly, inputDate, 720);
       System.out.println("[Next+1w ]: " + DateUtils.format(nextWDate, DateUpdaterTools.DATE_TIME_FORMAT));
       
-      Date nextDate = DateUpdaterTools.initializeTestNextDate(NewsPeriod.none, inputDate, 720);
-      System.out.println("[Next+non]: " + DateUtils.format(nextDate, DateUpdaterTools.DATE_TIME_FORMAT));
+//      Date nextDate = DateUpdaterTools.initializeTestNextDate(NewsPeriod.none, inputDate, 720);
+//      System.out.println("[Next+non]: " + DateUtils.format(nextDate, DateUpdaterTools.DATE_TIME_FORMAT));
       
   }
   
