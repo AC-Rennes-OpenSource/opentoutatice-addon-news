@@ -26,6 +26,7 @@ import org.nuxeo.ecm.user.center.profile.UserProfileService;
 import org.nuxeo.runtime.api.Framework;
 import org.opentoutatice.ecm.feature.news.scanner.io.NewsPeriod;
 
+import fr.toutatice.ecm.platform.core.constants.ToutaticeGlobalConst;
 import fr.toutatice.ecm.platform.core.helper.ToutaticeDocumentHelper;
 import fr.toutatice.ecm.platform.core.helper.ToutaticeSilentProcessRunnerHelper;
 
@@ -222,26 +223,10 @@ public class SpaceMember {
         this.data.put(SpaceMemberConstants.NEXT_NEWS_DATE_DATA, calendar);
         
         String dataLogin = (String) this.data.get(SpaceMemberConstants.LOGIN_DATA);
-//        List<Map<String, Serializable>> props = (ArrayList<Map<String,Serializable>>) this.space.getPropertyValue("ttcs:spaceMembers");
-//        if(props != null){
-//            for(Map<String, Serializable> prop : props){
-//                if(prop != null){
-//                    String login = (String) prop.get("login");
-//                    if(StringUtils.equals(dataLogin, login)){
-//                        prop.put("nextNewsDate", nextNewsDate);
-//                    }
-//                }
-//            }
-//        }
-//        this.space.setPropertyValue("ttcs:spaceMembers", (Serializable) props);
-//
-//        // Update
-////        this.space.setPropertyValue("ttcs:spaceMembers/[" + index + "]/nextNewsDate", nextNewsDate);
-//        // Save
-//        ToutaticeDocumentHelper.saveDocumentSilently(this.session, this.space, true);
         
+        // Persist
         SilentUpdate update = new SilentUpdate(session, space, dataLogin, nextNewsDate, "nextNewsDate");
-        update.runUnrestricted();
+        update.silentRun(true, ToutaticeGlobalConst.EVENT_N_VERSIONING_FILTERD_SERVICE);
         
     }
 
@@ -274,26 +259,10 @@ public class SpaceMember {
         this.data.put(SpaceMemberConstants.LAST_NEWS_DATE_DATA, calendar);
         
         String dataLogin = (String) this.data.get(SpaceMemberConstants.LOGIN_DATA);
-//        List<Map<String, Serializable>> props = (ArrayList<Map<String,Serializable>>) this.space.getPropertyValue("ttcs:spaceMembers");
-//        if(props != null){
-//            for(Map<String, Serializable> prop : props){
-//                if(prop != null){
-//                    String login = (String) prop.get("login");
-//                    if(StringUtils.equals(dataLogin, login)){
-//                        prop.put("nextNewsDate", lastNewsDate);
-//                    }
-//                }
-//            }
-//        }
-//        this.space.setPropertyValue("ttcs:spaceMembers", (Serializable) props);
-//
-//        // Update
-////        this.space.setPropertyValue("ttcs:spaceMembers/[" + index + "]/lastNewsDate", lastNewsDate);
-//        // Save
-//        ToutaticeDocumentHelper.saveDocumentSilently(this.session, this.space, true);
         
+        // Persist
         SilentUpdate update = new SilentUpdate(session, space, dataLogin, lastNewsDate, "lastNewsDate");
-        update.runUnrestricted();
+        update.silentRun(true, ToutaticeGlobalConst.EVENT_N_VERSIONING_FILTERD_SERVICE);
         
     }
 

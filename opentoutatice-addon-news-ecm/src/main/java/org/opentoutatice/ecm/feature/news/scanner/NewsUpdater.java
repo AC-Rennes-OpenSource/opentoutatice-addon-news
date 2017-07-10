@@ -208,6 +208,14 @@ public class NewsUpdater extends AbstractScanUpdater {
 
         }
 
+        if (accepts) {
+            if (this.member != null) {
+                if (log.isInfoEnabled()) {
+                    log.info("[Treating] " + this.member.getLogin() + " | " + this.member.getSpaceTitle());
+                }
+            }
+        }
+
         return accepts;
 
     }
@@ -242,6 +250,11 @@ public class NewsUpdater extends AbstractScanUpdater {
      */
     @Override
     public Object update(int index, Object scannedObject) throws Exception {
+        // Log
+        // if (log.isInfoEnabled()) {
+        // log.info("[Updating news dates] (space " + ((SpaceMember) scannedObject).getSpaceTitle() + ")");
+        // }
+
         //
 //        if(hasSpaceIdChanged()){
 //            index = 0;
@@ -279,12 +292,6 @@ public class NewsUpdater extends AbstractScanUpdater {
      */
     @Override
     public Object updateOnError(int index, Object scannedObject) throws Exception {
-        // LastNewsDate = previous nextNewsDate
-        Date storedNextNewsDate = ((SpaceMember) scannedObject).getNextNewsDate();
-        Calendar calendar = Calendar.getInstance();
-        calendar.setTime(storedNextNewsDate);
-        this.member.setLastNewsDate(index, calendar.getTime());
-        
         // NextNewsDate
         Date newsDate = getNextNewsDate(this.currentDate, getBoundaryValue(NewsPeriod.error));
         this.member.setNextNewsDate(index, newsDate);

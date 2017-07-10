@@ -126,6 +126,11 @@ public class NewsMailer extends AbstractMailer {
      */
     @Override
     public Object build(Object data) throws Exception {
+        // Info
+        // if (log.isInfoEnabled()) {
+        // log.info("[Buildinhg report]");
+        // }
+
         // Input
         SpaceMember member = (SpaceMember) data;
         // Output
@@ -195,6 +200,7 @@ public class NewsMailer extends AbstractMailer {
             }
 
         }
+
         return getData();
     }
 
@@ -241,7 +247,7 @@ public class NewsMailer extends AbstractMailer {
             // Build
             Map<String, Object> news = buildUnitData(currentLogin, doc);
             // Add
-            if(!news.isEmpty()){
+            if (!news.isEmpty()) {
                 newsList.add(news);
             }
         }
@@ -251,7 +257,7 @@ public class NewsMailer extends AbstractMailer {
         // Indicator
         display = newsList.size() > 0 || newMembersCount > 0;
         this.news.put("display", display);
-        
+
         // Sends mail indicator
         this.sends = this.sends || display;
 
@@ -277,7 +283,7 @@ public class NewsMailer extends AbstractMailer {
             // Build
             Map<String, Object> activity = buildUnitData(currentLogin, doc);
             // Add
-            if(!activity.isEmpty()){
+            if (!activity.isEmpty()) {
                 activities.add(activity);
             }
         }
@@ -287,7 +293,7 @@ public class NewsMailer extends AbstractMailer {
         // Indicator
         boolean display = activities.size() > 0;
         this.activities.put("display", display);
-        
+
         // Sends mail indicator
         this.sends = display;
 
