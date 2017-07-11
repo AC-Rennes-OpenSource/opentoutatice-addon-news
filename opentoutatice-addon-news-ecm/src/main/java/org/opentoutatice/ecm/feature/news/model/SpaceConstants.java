@@ -24,4 +24,7 @@ public interface SpaceConstants {
     /** Next news date. */
     String NEXT_NEWS_DATE = "nextNewsDate";
 
+    /** UserWorkspaces Root. */
+    String USER_WORKSPACES_ROOT_KEY = "userWorkspacesRoot";
+
 }

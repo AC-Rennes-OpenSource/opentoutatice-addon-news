@@ -8,12 +8,20 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.Map;
 
+import javax.security.auth.login.LoginContext;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.nuxeo.ecm.core.api.CoreInstance;
+import org.nuxeo.ecm.core.api.CoreSession;
+import org.nuxeo.ecm.core.api.DocumentModel;
+import org.nuxeo.ecm.core.api.DocumentModelList;
 import org.nuxeo.runtime.api.Framework;
 import org.opentoutatice.ecm.feature.news.model.SpaceMember;
 import org.opentoutatice.ecm.feature.news.scanner.io.NewsPeriod;
 import org.opentoutatice.ecm.scanner.AbstractScanUpdater;
+
+import fr.toutatice.ecm.platform.core.helper.ToutaticeQueryHelper;
 
 
 /**
@@ -21,58 +29,88 @@ import org.opentoutatice.ecm.scanner.AbstractScanUpdater;
  *
  */
 public class NewsUpdater extends AbstractScanUpdater {
-    
+
     /** Logger. */
     private static final Log log = LogFactory.getLog(NewsUpdater.class);
+
+    /** UserWorksapces Root query. */
+    private static final String UWS_ROOT_QUERY = "select * from UserWorkspacesRoot where ecm:isProxy = 0 and ecm:isVersion = 0 and ecm:currentLifeCycleState <> 'deleted'";
 
     /** Space member model. */
     private SpaceMember member;
 
     /** Current date. */
     private Date currentDate;
-    
-//    /** Space id. */
-//    private static String spaceId;
-//    /** Space id changer. */
-//    private static boolean spaceIdChanged = false;
-//    
-//    /**
-//     * @return the spaceId
-//     */
-//    public static  String getSpaceId() {
-//        return spaceId;
-//    }
-//
-//    /**
-//     * @param spaceId the spaceId to set
-//     */
-//    public static void setSpaceId(String spaceId) {
-//        NewsUpdater.spaceId = spaceId;
-//    }
-    
-//    /**
-//     * @return the spaceIdChanged
-//     */
-//    public static boolean hasSpaceIdChanged() {
-//        return spaceIdChanged;
-//    }
-//
-//    /**
-//     * @param spaceIdChanged the spaceIdChanged to set
-//     */
-//    public static void setSpaceIdChanged(boolean spaceIdChanged) {
-//        NewsUpdater.spaceIdChanged = spaceIdChanged;
-//    }
+
+    /** UserWorkspaces root. */
+    private static DocumentModel userWorkspacesRoot = null;
+
+    // /** Space id. */
+    // private static String spaceId;
+    // /** Space id changer. */
+    // private static boolean spaceIdChanged = false;
+    //
+    // /**
+    // * @return the spaceId
+    // */
+    // public static String getSpaceId() {
+    // return spaceId;
+    // }
+    //
+    // /**
+    // * @param spaceId the spaceId to set
+    // */
+    // public static void setSpaceId(String spaceId) {
+    // NewsUpdater.spaceId = spaceId;
+    // }
+
+    // /**
+    // * @return the spaceIdChanged
+    // */
+    // public static boolean hasSpaceIdChanged() {
+    // return spaceIdChanged;
+    // }
+    //
+    // /**
+    // * @param spaceIdChanged the spaceIdChanged to set
+    // */
+    // public static void setSpaceIdChanged(boolean spaceIdChanged) {
+    // NewsUpdater.spaceIdChanged = spaceIdChanged;
+    // }
+
+    public static DocumentModel getUserWorkspacesRoot() throws Exception {
+        if (userWorkspacesRoot == null) {
+            LoginContext login = null;
+            CoreSession sessionSystem = null;
+            try {
+                // Find it
+                login = Framework.login();
+                sessionSystem = CoreInstance.openCoreSessionSystem(null);
+
+                DocumentModelList uWorspacesRoots = ToutaticeQueryHelper.queryUnrestricted(sessionSystem, UWS_ROOT_QUERY);
+                // FIXME: takes the first for the moment if more than one
+                userWorkspacesRoot = uWorspacesRoots.get(0);
+            } finally {
+                if (sessionSystem != null) {
+                    sessionSystem.close();
+                }
+                if (login != null) {
+                    login.logout();
+                }
+            }
+        }
+        return userWorkspacesRoot;
+    }
 
     /**
      * Getter for test mode.
      * 
      * @return boolean
      */
-    public static boolean isTestModeSet(){
+    public static boolean isTestModeSet() {
         return Boolean.valueOf(Framework.getProperty("ottc.news.mode.test"));
     }
-    
+
     /**
      * {@inheritDoc}
      */
@@ -95,50 +133,50 @@ public class NewsUpdater extends AbstractScanUpdater {
         switch (newsPeriod) {
             case daily:
                 boundaryValue = (String) getParams().get(DateUpdaterTools.NEXT_DAILY_BOUNDARY);
-                
-                if(log.isTraceEnabled()){
+
+                if (log.isTraceEnabled()) {
                     log.trace("[NO MODE TEST] [Period]: " + boundaryValue);
                 }
-                
-                if(isTestModeSet()){
+
+                if (isTestModeSet()) {
                     boundaryValue = Framework.getProperty("ottc.news.scan.daily.test.boundary");
-                    if(log.isDebugEnabled()){
+                    if (log.isDebugEnabled()) {
                         log.trace("[MODE TEST] [Period]: " + boundaryValue);
                     }
                 }
-                
+
                 break;
 
             case weekly:
                 boundaryValue = (String) getParams().get(DateUpdaterTools.NEXT_WEEKLY_BOUNDARY);
-                
-                if(log.isTraceEnabled()){
+
+                if (log.isTraceEnabled()) {
                     log.trace("[NO MODE TEST] [Period]: " + boundaryValue);
                 }
-                
-                if(isTestModeSet()){
+
+                if (isTestModeSet()) {
                     boundaryValue = Framework.getProperty("ottc.news.scan.weekly.test.boundary");
-                    if(log.isTraceEnabled()){
+                    if (log.isTraceEnabled()) {
                         log.trace("[MODE TEST] [Period]: " + boundaryValue);
                     }
                 }
-                
+
                 break;
 
             case error:
                 boundaryValue = (String) getParams().get(DateUpdaterTools.NEXT_ERROR_BOUNDARY);
-                
-                if(log.isTraceEnabled()){
+
+                if (log.isTraceEnabled()) {
                     log.trace("[NO MODE TEST] [Period]: " + boundaryValue);
                 }
-                
-                if(isTestModeSet()){
+
+                if (isTestModeSet()) {
                     boundaryValue = Framework.getProperty("ottc.news.scan.error.test.boundary");
-                    if(log.isTraceEnabled()){
+                    if (log.isTraceEnabled()) {
                         log.trace("[MODE TEST] [Period]: " + boundaryValue);
                     }
                 }
-                
+
                 break;
 
             case none:
@@ -166,54 +204,59 @@ public class NewsUpdater extends AbstractScanUpdater {
 
         // Member
         this.member = (SpaceMember) this.toModel(scannedObject);
+        if (this.member.isUsable()) {
 
-        // Member must have subscribed
-        boolean hasSubscribed = this.member.hasSubscribed();
-        if (!hasSubscribed) {
-            // Could have subscribed before
-            this.member.setNextNewsDate(index, null);
-        }
-
-        // Period subscription
-        boolean noPeriod = NewsPeriod.none.equals(this.member.getNewsPeriod());
-
-        // Date condition
-        Date nextNewsDate = this.member.getNextNewsDate();
-        // nextNewsDat is null if just subscribed
-        boolean mustNotify = nextNewsDate == null || (nextNewsDate != null && nextNewsDate.getTime() < this.currentDate.getTime());
-
-        accepts = hasSubscribed && !noPeriod && mustNotify;
-
-        // Debug
-        if (log.isDebugEnabled()) {
-            log.debug("[NO MODE SET] [accepts]: " + accepts + ": " + "(hasSubscribed=" + hasSubscribed + " / noPeriod=" + noPeriod + " / mustNotify="
-                    + mustNotify);
-        }
-
-        if (isTestModeSet()) {
-            // Test mode: accept conditions
-            hasSubscribed = hasSubscribed ? hasSubscribed : Boolean.valueOf(Framework.getProperty("ottc.news.scan.accept.subscr.test", "false"));
-            if (noPeriod && Boolean.valueOf(Framework.getProperty("ottc.news.scan.accept.none.period.test", "false"))) {
-                noPeriod = false;
+            // Member must have subscribed
+            boolean hasSubscribed = this.member.hasSubscribed();
+            if (!hasSubscribed) {
+                // Could have subscribed before: reset
+                this.member.setNextNewsDate(index, null);
             }
-            mustNotify = nextNewsDate == null || (nextNewsDate != null && nextNewsDate.getTime() < this.currentDate.getTime());
+
+            // Period subscription
+            boolean noPeriod = NewsPeriod.none.equals(this.member.getNewsPeriod());
+
+            // Date condition
+            Date nextNewsDate = this.member.getNextNewsDate();
+            // nextNewsDat is null if just subscribed
+            boolean mustNotify = nextNewsDate == null || (nextNewsDate != null && nextNewsDate.getTime() < this.currentDate.getTime());
 
             accepts = hasSubscribed && !noPeriod && mustNotify;
-            
+
             // Debug
             if (log.isDebugEnabled()) {
-                log.debug("[MODE SET] [accepts]: " + accepts + ": " + "(hasSubscribed=" + hasSubscribed + " / noPeriod=" + noPeriod + " / mustNotify="
+                log.debug("[NO MODE SET] [accepts]: " + accepts + ": " + "(hasSubscribed=" + hasSubscribed + " / noPeriod=" + noPeriod + " / mustNotify="
                         + mustNotify);
             }
 
-        }
+            if (isTestModeSet()) {
+                // Test mode: accept conditions
+                hasSubscribed = hasSubscribed ? hasSubscribed : Boolean.valueOf(Framework.getProperty("ottc.news.scan.accept.subscr.test", "false"));
+                if (noPeriod && Boolean.valueOf(Framework.getProperty("ottc.news.scan.accept.none.period.test", "false"))) {
+                    noPeriod = false;
+                }
+                mustNotify = nextNewsDate == null || (nextNewsDate != null && nextNewsDate.getTime() < this.currentDate.getTime());
 
-        if (accepts) {
-            if (this.member != null) {
-                if (log.isInfoEnabled()) {
-                    log.info("[Treating] " + this.member.getLogin() + " | " + this.member.getSpaceTitle());
+                accepts = hasSubscribed && !noPeriod && mustNotify;
+
+                // Debug
+                if (log.isDebugEnabled()) {
+                    log.debug("[MODE SET] [accepts]: " + accepts + ": " + "(hasSubscribed=" + hasSubscribed + " / noPeriod=" + noPeriod + " / mustNotify="
+                            + mustNotify);
+                }
+
+            }
+
+            if (accepts) {
+                if (this.member != null) {
+                    if (log.isInfoEnabled()) {
+                        log.info("[Treating] " + this.member.getLogin() + " | " + this.member.getSpaceTitle());
+                    }
                 }
             }
+
+        } else {
+            accepts = false;
         }
 
         return accepts;
@@ -226,10 +269,10 @@ public class NewsUpdater extends AbstractScanUpdater {
     @Override
     public Object initialize(int index, Object scannedObject) throws Exception {
         //
-//        if(hasSpaceIdChanged()){
-//            index = 0;
-//        }
-        
+        // if(hasSpaceIdChanged()){
+        // index = 0;
+        // }
+
         // Next news date
         Date nextNewsDate = this.member.getNextNewsDate();
 
@@ -256,16 +299,16 @@ public class NewsUpdater extends AbstractScanUpdater {
         // }
 
         //
-//        if(hasSpaceIdChanged()){
-//            index = 0;
-//        }
-        
+        // if(hasSpaceIdChanged()){
+        // index = 0;
+        // }
+
         // LastNewsDate = previous nextNewsDate
         Date storedNextNewsDate = ((SpaceMember) scannedObject).getNextNewsDate();
         Calendar calendar = Calendar.getInstance();
         calendar.setTime(storedNextNewsDate);
         this.member.setLastNewsDate(index, calendar.getTime());
-        
+
         // Update nextNewsDate
         Date newsDate = getNextNewsDate(this.currentDate, getBoundaryValue(this.member.getNewsPeriod()));
         this.member.setNextNewsDate(index, newsDate);

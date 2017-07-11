@@ -3,6 +3,8 @@
  */
 package org.opentoutatice.ecm.feature.news.model;
 
+import static org.nuxeo.ecm.user.center.profile.UserProfileConstants.USER_PROFILE_DOCTYPE;
+
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -16,18 +18,24 @@ import java.util.TimeZone;
 import javax.security.auth.login.LoginException;
 
 import org.apache.commons.lang.StringUtils;
+import org.nuxeo.common.utils.IdUtils;
 import org.nuxeo.ecm.core.api.ClientException;
 import org.nuxeo.ecm.core.api.CoreInstance;
 import org.nuxeo.ecm.core.api.CoreSession;
 import org.nuxeo.ecm.core.api.DocumentModel;
+import org.nuxeo.ecm.core.api.DocumentModelList;
+import org.nuxeo.ecm.core.api.DocumentRef;
 import org.nuxeo.ecm.core.api.NuxeoPrincipal;
+import org.nuxeo.ecm.core.api.PathRef;
+import org.nuxeo.ecm.core.api.pathsegment.PathSegmentService;
 import org.nuxeo.ecm.platform.usermanager.UserManager;
-import org.nuxeo.ecm.user.center.profile.UserProfileService;
 import org.nuxeo.runtime.api.Framework;
+import org.opentoutatice.ecm.feature.news.scanner.NewsUpdater;
 import org.opentoutatice.ecm.feature.news.scanner.io.NewsPeriod;
 
 import fr.toutatice.ecm.platform.core.constants.ToutaticeGlobalConst;
 import fr.toutatice.ecm.platform.core.helper.ToutaticeDocumentHelper;
+import fr.toutatice.ecm.platform.core.helper.ToutaticeQueryHelper;
 import fr.toutatice.ecm.platform.core.helper.ToutaticeSilentProcessRunnerHelper;
 
 
@@ -52,10 +60,15 @@ public class SpaceMember {
     /** UserManager. */
     private static UserManager usrManager;
 
+    /** Utilizability. */
+    private boolean usable = true;
+
+    /** User Workspace name max size. */
+    private static final int UWS_NAME_MAX_SIZE = Framework.getService(PathSegmentService.class).getMaxSize();
 
     public SpaceMember(Map<String, Serializable> data) throws LoginException {
         super();
-        initialize(data);
+        this.usable = initialize(data);
     }
 
 
@@ -79,12 +92,22 @@ public class SpaceMember {
     }
 
     /**
+     * @return the usable
+     */
+    public boolean isUsable() {
+        return usable;
+    }
+
+    /**
      * Initialize model.
      * 
      * @param login
      * @throws LoginException
      */
-    private void initialize(Map<String, Serializable> data) throws LoginException {
+    private boolean initialize(Map<String, Serializable> data) throws LoginException {
+        // Indicator
+        boolean initialized = false;
+
         // Data
         this.data = data;
 
@@ -97,26 +120,75 @@ public class SpaceMember {
         this.session = CoreInstance.openCoreSession(null, principal);
 
         // User profile
-        UserProfileService usrProfileSrv = (UserProfileService) Framework.getService(UserProfileService.class);
-        this.userProfile = usrProfileSrv.getUserProfileDocument(login, session);
+        this.userProfile = getUserProfileDocument(login, session);
+        if (this.userProfile != null) {
+            // Space
+            String spaceId = (String) this.data.get(SpaceMemberConstants.SPACE_ID);
+            this.space = ToutaticeDocumentHelper.getUnrestrictedDocument(this.session, spaceId);
 
-        // Space
-        String spaceId = (String) this.data.get(SpaceMemberConstants.SPACE_ID);
-        this.space = ToutaticeDocumentHelper.getUnrestrictedDocument(this.session, spaceId);
-        
+            // Ok
+            initialized = true;
+        }
+
         // Previous treated space if any
-//        if(NewsUpdater.getSpaceId() == null){
-//            NewsUpdater.setSpaceId(spaceId);
-//        }
-//        else {
-//            if(!StringUtils.equals(NewsUpdater.getSpaceId(), spaceId)){
-//                NewsUpdater.setSpaceId(spaceId);
-//                NewsUpdater.setSpaceIdChanged(true);
-//            } else {
-//                NewsUpdater.setSpaceIdChanged(false);
-//            }
-//        }
+        // if(NewsUpdater.getSpaceId() == null){
+        // NewsUpdater.setSpaceId(spaceId);
+        // }
+        // else {
+        // if(!StringUtils.equals(NewsUpdater.getSpaceId(), spaceId)){
+        // NewsUpdater.setSpaceId(spaceId);
+        // NewsUpdater.setSpaceIdChanged(true);
+        // } else {
+        // NewsUpdater.setSpaceIdChanged(false);
+        // }
+        // }
+
+        return initialized;
     }
+
+    /**
+     * Get UserProfile without using workspaceService to avoid possible
+     * Workspace creation.
+     * 
+     * @param login
+     * @param session
+     * @return UserProfile
+     */
+    private DocumentModel getUserProfileDocument(String login, CoreSession session) {
+        DocumentModel userProfile = null;
+
+        if (session != null) {
+            // Compute UserWorkspace path
+            DocumentModel uWsRoot = null;
+            try {
+                uWsRoot = NewsUpdater.getUserWorkspacesRoot();
+            } catch (Exception e) {
+                // Nothing to do
+            }
+
+            if (uWsRoot != null) {
+
+                StringBuffer uWsPath = new StringBuffer(uWsRoot.getPathAsString()).append("/").append(IdUtils.generateId(login, "-", false, UWS_NAME_MAX_SIZE));
+                // Check if UserWorkspace exists
+                DocumentRef uWsRRef = new PathRef(uWsPath.toString());
+                if (session.exists(uWsRRef)) {
+                    DocumentModel uWsDoc = ToutaticeDocumentHelper.getUnrestrictedDocument(session, uWsPath.toString());
+
+                    // Get UserProfile
+                    String query = String
+                            .format("select * from %s where ecm:parentId='%s' and ecm:isProxy = 0 and ecm:isCheckedInVersion = 0 and ecm:currentLifeCycleState != 'deleted'",
+                                    USER_PROFILE_DOCTYPE, uWsDoc.getId());
+                    DocumentModelList userProfiles = ToutaticeQueryHelper.queryUnrestricted(session, query);
+                    if (!userProfiles.isEmpty()) {
+                        userProfile = userProfiles.get(0);
+                    }
+                }
+            }
+        }
+
+        return userProfile;
+    }
+
 
     /**
      * Checks if space's member wants to have notifications.
@@ -126,7 +198,7 @@ public class SpaceMember {
     public boolean hasSubscribed() {
         return (Boolean) this.userProfile.getPropertyValue(SpaceMemberConstants.NEWS_SUBSCRIPTION);
     }
-    
+
     /**
      * Getter for login.
      */
@@ -217,17 +289,20 @@ public class SpaceMember {
      */
     public void setNextNewsDate(int index, Date nextNewsDate) {
         // Model update
-        Calendar calendar = GregorianCalendar.getInstance();
-        calendar.setTimeZone(TimeZone.getTimeZone("Europe/Berlin"));
-        calendar.setTime(nextNewsDate);
+        Calendar calendar = null;
+        if (nextNewsDate != null) {
+            calendar = GregorianCalendar.getInstance();
+            calendar.setTimeZone(TimeZone.getTimeZone("Europe/Berlin"));
+            calendar.setTime(nextNewsDate);
+        }
         this.data.put(SpaceMemberConstants.NEXT_NEWS_DATE_DATA, calendar);
-        
+
         String dataLogin = (String) this.data.get(SpaceMemberConstants.LOGIN_DATA);
-        
+
         // Persist
         SilentUpdate update = new SilentUpdate(session, space, dataLogin, nextNewsDate, "nextNewsDate");
         update.silentRun(true, ToutaticeGlobalConst.EVENT_N_VERSIONING_FILTERD_SERVICE);
-        
+
     }
 
     /**
@@ -257,13 +332,13 @@ public class SpaceMember {
         calendar.setTimeZone(TimeZone.getTimeZone("Europe/Berlin"));
         calendar.setTime(lastNewsDate);
         this.data.put(SpaceMemberConstants.LAST_NEWS_DATE_DATA, calendar);
-        
+
         String dataLogin = (String) this.data.get(SpaceMemberConstants.LOGIN_DATA);
-        
+
         // Persist
         SilentUpdate update = new SilentUpdate(session, space, dataLogin, lastNewsDate, "lastNewsDate");
         update.silentRun(true, ToutaticeGlobalConst.EVENT_N_VERSIONING_FILTERD_SERVICE);
-        
+
     }
 
     /**
@@ -284,7 +359,7 @@ public class SpaceMember {
 
         return prop;
     }
-    
+
     /**
      * Save a document in an silent way.
      */
@@ -305,19 +380,19 @@ public class SpaceMember {
 
         @Override
         public void run() throws ClientException {
-            List<Map<String, Serializable>> props = (ArrayList<Map<String,Serializable>>) this.space.getPropertyValue("ttcs:spaceMembers");
-            if(props != null){
-                for(Map<String, Serializable> prop : props){
-                    if(prop != null){
+            List<Map<String, Serializable>> props = (ArrayList<Map<String, Serializable>>) this.space.getPropertyValue("ttcs:spaceMembers");
+            if (props != null) {
+                for (Map<String, Serializable> prop : props) {
+                    if (prop != null) {
                         String login = (String) prop.get("login");
-                        if(StringUtils.equals(dataLogin, login)){
+                        if (StringUtils.equals(dataLogin, login)) {
                             prop.put(this.dateIdent, this.date);
                         }
                     }
                 }
             }
             this.space.setPropertyValue("ttcs:spaceMembers", (Serializable) props);
-            
+
             this.session.saveDocument(space);
         }
 
