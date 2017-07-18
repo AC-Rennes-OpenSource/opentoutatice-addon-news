@@ -180,7 +180,7 @@ public class DateUpdaterTools {
         calendar.setTime(inputDate);
 
         int currentDay = calendar.get(Calendar.DAY_OF_WEEK);
-        int shiftNextSunday = currentDay != 1 ? 8 - currentDay : currentDay;
+        int shiftNextSunday = currentDay != Calendar.SUNDAY ? 8 - currentDay : currentDay;
 
         return DateUtils.addDays(inputDate, shiftNextSunday);
     }

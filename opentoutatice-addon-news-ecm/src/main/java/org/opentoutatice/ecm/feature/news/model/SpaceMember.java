@@ -13,7 +13,6 @@ import java.util.GregorianCalendar;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.TimeZone;
 
 import javax.security.auth.login.LoginException;
 
@@ -293,7 +292,6 @@ public class SpaceMember {
         Calendar calendar = null;
         if (nextNewsDate != null) {
             calendar = GregorianCalendar.getInstance();
-            calendar.setTimeZone(TimeZone.getTimeZone("Europe/Berlin"));
             calendar.setTime(nextNewsDate);
         }
         this.data.put(SpaceMemberConstants.NEXT_NEWS_DATE_DATA, calendar);

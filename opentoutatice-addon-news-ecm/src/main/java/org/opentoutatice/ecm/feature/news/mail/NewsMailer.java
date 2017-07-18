@@ -13,6 +13,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import javax.mail.MessagingException;
+
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.time.DateFormatUtils;
 import org.apache.commons.logging.Log;
@@ -440,7 +442,7 @@ public class NewsMailer extends AbstractMailer {
     }
 
     @Override
-    public void send(Object content) throws Exception {
+    public void send(Object content) throws MessagingException, ErrorTestModeException {
         // Use case errors
         if (ErrorTestMode.isActivated()) {
             this.sends = true;

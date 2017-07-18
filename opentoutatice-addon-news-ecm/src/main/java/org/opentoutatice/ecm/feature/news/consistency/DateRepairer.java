@@ -42,7 +42,7 @@ public class DateRepairer {
                 int day = calendar.get(Calendar.DAY_OF_WEEK);
                 int minutes = calendar.get(Calendar.HOUR_OF_DAY) * 60 + calendar.get(Calendar.MINUTE);
 
-                if (!((day == 1 && minutes >= boundary) || (day == 2 && minutes <= boundary))) {
+                if (!((day == Calendar.SUNDAY && minutes >= boundary) || (day == Calendar.MONDAY && minutes <= boundary))) {
                     repairedDate = DateUpdaterTools.getNextSunday(dateToCheck);
                 }
                 break;
