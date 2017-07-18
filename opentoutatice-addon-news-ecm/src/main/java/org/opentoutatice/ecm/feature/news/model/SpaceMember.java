@@ -66,6 +66,20 @@ public class SpaceMember {
     /** User Workspace name max size. */
     private static final int UWS_NAME_MAX_SIZE = Framework.getService(PathSegmentService.class).getMaxSize();
 
+    /**
+     * Default constructor.
+     */
+    public SpaceMember() {
+        super();
+        this.data = new HashMap<>(0);
+    }
+
+    /**
+     * Constructor with in itialization.
+     * 
+     * @param data
+     * @throws LoginException
+     */
     public SpaceMember(Map<String, Serializable> data) throws LoginException {
         super();
         this.usable = initialize(data);
@@ -129,19 +143,6 @@ public class SpaceMember {
             // Ok
             initialized = true;
         }
-
-        // Previous treated space if any
-        // if(NewsUpdater.getSpaceId() == null){
-        // NewsUpdater.setSpaceId(spaceId);
-        // }
-        // else {
-        // if(!StringUtils.equals(NewsUpdater.getSpaceId(), spaceId)){
-        // NewsUpdater.setSpaceId(spaceId);
-        // NewsUpdater.setSpaceIdChanged(true);
-        // } else {
-        // NewsUpdater.setSpaceIdChanged(false);
-        // }
-        // }
 
         return initialized;
     }
@@ -300,7 +301,7 @@ public class SpaceMember {
         String dataLogin = (String) this.data.get(SpaceMemberConstants.LOGIN_DATA);
 
         // Persist
-        SilentUpdate update = new SilentUpdate(session, space, dataLogin, nextNewsDate, "nextNewsDate");
+        SilentUpdate update = new SilentUpdate(this.session, this.space, dataLogin, nextNewsDate, "nextNewsDate");
         update.silentRun(true, ToutaticeGlobalConst.EVENT_N_VERSIONING_FILTERD_SERVICE);
 
     }
@@ -329,7 +330,6 @@ public class SpaceMember {
     public void setLastNewsDate(int index, Date lastNewsDate) {
         // Update model
         Calendar calendar = GregorianCalendar.getInstance();
-        calendar.setTimeZone(TimeZone.getTimeZone("Europe/Berlin"));
         calendar.setTime(lastNewsDate);
         this.data.put(SpaceMemberConstants.LAST_NEWS_DATE_DATA, calendar);
 
@@ -394,6 +394,7 @@ public class SpaceMember {
             this.space.setPropertyValue("ttcs:spaceMembers", (Serializable) props);
 
             this.session.saveDocument(space);
+            this.session.save();
         }
 
     }

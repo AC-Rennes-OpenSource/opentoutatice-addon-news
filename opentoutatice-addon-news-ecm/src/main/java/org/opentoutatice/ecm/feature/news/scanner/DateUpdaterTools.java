@@ -3,14 +3,16 @@
  */
 package org.opentoutatice.ecm.feature.news.scanner;
 
+import java.util.Calendar;
 import java.util.Date;
-import java.util.Random;
+import java.util.concurrent.ThreadLocalRandom;
 
 import org.apache.commons.lang.time.DateFormatUtils;
 import org.apache.commons.lang.time.DateUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.nuxeo.runtime.api.Framework;
+import org.opentoutatice.ecm.feature.news.consistency.DateRepairer;
 import org.opentoutatice.ecm.feature.news.scanner.io.NewsPeriod;
 
 
@@ -36,9 +38,6 @@ public class DateUpdaterTools {
     /** Next error interval. */
     public static final String NEXT_ERROR_BOUNDARY = "nextErrorBoundary";
 
-    /** Randon generator. */
-    private static final Random rand = new Random();
-
     /**
      * Utility class.
      */
@@ -47,29 +46,15 @@ public class DateUpdaterTools {
     }
 
     /**
-     * Gets an random integer in [-boundary, + boundary].
-     * 
-     * @param boundary
-     * @return
-     */
-    public static int getRandomIntIn(int boundary) {
-        // return rand.nextInt(2 * boundary) - boundary;
-        int rInt = rand.nextInt(boundary);
-        // Sign
-        int sign = rInt % 2 == 0 ? 1 : -1;
-
-        return sign * rInt;
-    }
-
-    /**
      * 
      * @param newsPeriod
      * @param boundary
      * @return
      */
-    public static Date initializeNextDate(NewsPeriod newsPeriod, Date inputDate, int boundary) {
-        // Next date
+    public static Date computeNextDate(NewsPeriod newsPeriod, Date inputDate, int boundary, boolean init) {
+        // Result
         Date nextDate = null;
+
         // For debug
         String inputStrDate = DateFormatUtils.format(inputDate, DATE_TIME_FORMAT);
 
@@ -77,85 +62,127 @@ public class DateUpdaterTools {
         switch (newsPeriod) {
 
             case daily:
-             // + one day at 00:00 +/- random time in boundary
-                Date addedDayDate = DateUtils.addDays(inputDate, 1);
-                nextDate = getNextRandomDate(addedDayDate, boundary);
-                
-                if(log.isDebugEnabled()){
-                    log.debug("[NO MODE TEST] [Daily] NextDate = " + inputStrDate + " -> " + DateFormatUtils.format(nextDate, DateUpdaterTools.DATE_TIME_FORMAT));
+                // + one day at 00:00 +/- random time in boundary
+                if (init) {
+                    inputDate = setMidnight(inputDate);
+                } else {
+                    inputDate = setMidnight(inputDate, boundary);
                 }
-                
-                if(NewsUpdater.isTestModeSet()){
-                 // Gap in minutes
+                Date addedDayDate = DateUtils.addDays(inputDate, 1);
+
+                nextDate = getNextRandomDate(addedDayDate, boundary);
+
+                if (log.isDebugEnabled()) {
+                    log.debug("[NO TEST MODE] [Daily] NextDate = " + inputStrDate + " -> "
+                            + DateFormatUtils.format(nextDate, DateUpdaterTools.DATE_TIME_FORMAT));
+                }
+
+                if (NewsUpdater.isTestModeSet()) {
+                    // Gap in minutes
                     int gap = Integer.valueOf(Framework.getProperty("ottc.news.scan.daily.test.gap", "10"));
                     nextDate = DateUtils.addMinutes(inputDate, gap);
-                    
-                    if(log.isDebugEnabled()){
-                        log.debug("[MODE TEST] [Daily] NextDate = " + inputStrDate + " -> " + DateFormatUtils.format(nextDate, DateUpdaterTools.DATE_TIME_FORMAT));
+
+                    if (log.isDebugEnabled()) {
+                        log.debug("[TEST MODE] [Daily] NextDate = " + inputStrDate + " -> "
+                                + DateFormatUtils.format(nextDate, DateUpdaterTools.DATE_TIME_FORMAT));
                     }
                 }
-                
+
                 break;
 
             case weekly:
-             // + one week at 00:00 +/- random time in boundary
-                Date addedWeekDate = DateUtils.addWeeks(inputDate, 1);
-                nextDate = getNextRandomDate(addedWeekDate, boundary);
-                
-                if(log.isDebugEnabled()){
-                    log.debug("[NO MODE TEST] [Weekly] NextDate = " + inputStrDate + " -> " + DateFormatUtils.format(nextDate, DateUpdaterTools.DATE_TIME_FORMAT));
+                Date addedWeekDate = null;
+                // Init: set next Sunday
+                if (init) {
+                    addedWeekDate = setMidnight(getNextSunday(inputDate));
+                    addedWeekDate = DateUtils.addDays(addedWeekDate, 1);
+                } else {
+                    // + one week at 00:00 +/- random time in boundary
+                    Date repairedDate = DateRepairer.checkDateNRepair(newsPeriod, inputDate, boundary);
+                    if (repairedDate != null) {
+                        addedWeekDate = repairedDate;
+                    } else {
+                        inputDate = setMidnight(inputDate, boundary);
+                        addedWeekDate = DateUtils.addWeeks(inputDate, 1);
+                    }
                 }
-                
 
-                if(NewsUpdater.isTestModeSet()){
-                 // Gap in minutes
+                nextDate = getNextRandomDate(addedWeekDate, boundary);
+
+                if (log.isDebugEnabled()) {
+                    log.debug("[NO TEST MODE] [Weekly] NextDate = " + inputStrDate + " -> "
+                            + DateFormatUtils.format(nextDate, DateUpdaterTools.DATE_TIME_FORMAT));
+                }
+
+
+                if (NewsUpdater.isTestModeSet()) {
+                    // Gap in minutes
                     int gap = Integer.valueOf(Framework.getProperty("ottc.news.scan.weekly.test.gap", "10"));
                     nextDate = DateUtils.addMinutes(inputDate, gap);
-                    
-                    if(log.isDebugEnabled()){
-                        log.debug("[MODE TEST] [Weekly] NextDate = " + inputStrDate + " -> " + DateFormatUtils.format(nextDate, DateUpdaterTools.DATE_TIME_FORMAT));
+
+                    if (log.isDebugEnabled()) {
+                        log.debug("[TEST MODE] [Weekly] NextDate = " + inputStrDate + " -> "
+                                + DateFormatUtils.format(nextDate, DateUpdaterTools.DATE_TIME_FORMAT));
                     }
                 }
 
                 break;
-                
+
             case none:
-                if(NewsUpdater.isTestModeSet()){
-                 // Gap in minutes
+                if (NewsUpdater.isTestModeSet()) {
+                    // Gap in minutes
                     int gap = Integer.valueOf(Framework.getProperty("ottc.news.scan.none.test.gap", "10"));
                     nextDate = DateUtils.addMinutes(inputDate, gap);
-                    
-                    if(log.isDebugEnabled()){
-                        log.debug("[MODE TEST] [None] NextDate = " + inputStrDate + " -> " + DateFormatUtils.format(nextDate, DateUpdaterTools.DATE_TIME_FORMAT));
+
+                    if (log.isDebugEnabled()) {
+                        log.debug("[TEST MODE] [None] NextDate = " + inputStrDate + " -> "
+                                + DateFormatUtils.format(nextDate, DateUpdaterTools.DATE_TIME_FORMAT));
                     }
                 }
 
                 break;
 
             case error:
-             // + one hour +/- random time in boundary
-                Date addedHourDate = DateUtils.addHours(inputDate, 1);
-                nextDate = getNextRandomDate(addedHourDate, boundary);
-                
-                if(log.isDebugEnabled()){
-                    log.debug("[NO MODE TEST] [Error] NextDate = " + inputStrDate + " -> " + DateFormatUtils.format(nextDate, DateUpdaterTools.DATE_TIME_FORMAT));
+                // + one hour +/- random time in boundary
+                nextDate = DateUtils.addHours(inputDate, 2);
+
+                if (log.isDebugEnabled()) {
+                    log.debug("[NO TEST MODE] [Error] NextDate = " + inputStrDate + " -> "
+                            + DateFormatUtils.format(nextDate, DateUpdaterTools.DATE_TIME_FORMAT));
                 }
-                
-                if(NewsUpdater.isTestModeSet()){
+
+                if (NewsUpdater.isTestModeSet()) {
                     // Gap in minutes
-                       int gap = Integer.valueOf(Framework.getProperty("ottc.news.scan.error.test.gap", "10"));
-                       nextDate = DateUtils.addMinutes(inputDate, gap);
-                       
-                       if(log.isDebugEnabled()){
-                           log.debug("[MODE TEST] [Error] NextDate = " + inputStrDate + " -> " + DateFormatUtils.format(nextDate, DateUpdaterTools.DATE_TIME_FORMAT));
-                       }
-                   }
+                    int gap = Integer.valueOf(Framework.getProperty("ottc.news.scan.error.test.gap", "10"));
+                    nextDate = DateUtils.addMinutes(inputDate, gap);
+
+                    if (log.isDebugEnabled()) {
+                        log.debug("[TEST MODE] [Error] NextDate = " + inputStrDate + " -> "
+                                + DateFormatUtils.format(nextDate, DateUpdaterTools.DATE_TIME_FORMAT));
+                    }
+                }
 
                 break;
 
         }
 
         return nextDate;
+    }
+
+    /**
+     * Gets next Sunday from date.
+     * 
+     * @param inputDate
+     * @return next Sunday
+     */
+    public static Date getNextSunday(Date inputDate) {
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTime(inputDate);
+
+        int currentDay = calendar.get(Calendar.DAY_OF_WEEK);
+        int shiftNextSunday = currentDay != 1 ? 8 - currentDay : currentDay;
+
+        return DateUtils.addDays(inputDate, shiftNextSunday);
     }
 
     /**
@@ -179,65 +206,61 @@ public class DateUpdaterTools {
      * @return Date
      */
     public static Date getNextRandomDate(Date inputDate, int boundary) {
-        // ms to shift (can be negative)
-        int msToShift = getRandomIntIn(boundary) * 60000;
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTime(inputDate);
 
-        // Date computed from 1970-01-01 00:00:00
-        long inputMs = inputDate.getTime();
-        long time = inputMs + msToShift;
+        // Shift
+        int shift = ThreadLocalRandom.current().nextInt((-1) * boundary, boundary);
 
-        Date nextDate = new Date(0);
-        nextDate.setTime(time);
+        // Build date
+        calendar.set(Calendar.MINUTE, shift);
+        return calendar.getTime();
+    }
+    
+    /**
+     * Sets given date (which is in daily, weekly, ... boundaries) at midnight. 
+     * 
+     * @param calendar
+     */
+    public static Date setMidnight(Date date, int boundary) {
+        // Check if we must add or remove time to go to midnight
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTime(date);
 
-        return nextDate;
+        int day = calendar.get(Calendar.DAY_OF_WEEK);
+
+        int minutes = calendar.get(Calendar.MINUTE);
+        calendar.set(Calendar.MINUTE, minutes + boundary);
+
+        if (day != calendar.get(Calendar.DAY_OF_WEEK)) {
+            calendar.setTime(DateUtils.addDays(date, 1));
+        } else {
+            calendar.set(Calendar.MINUTE, minutes);
+        }
+        
+        calendar.set(Calendar.HOUR_OF_DAY, 0);
+        calendar.set(Calendar.MINUTE, 0);
+        calendar.set(Calendar.SECOND, 0);
+
+        return calendar.getTime();
     }
 
     /**
-     * @param boundary
-     * @param midnightDate
-     * @return
+     * Set midnight for given day.
+     * 
+     * @param calendar
+     * @param date
+     * @return date
      */
-    public static Date getRandomDateAroundMidnight(int boundary, Date inputDate) {
-        // Set to midnight
-        Date midnightDate = DateUtils.setHours(inputDate, 0);
-        return getRandomDateAroundMidnight(boundary, midnightDate);
-    }
+    public static Date setMidnight(Date date) {
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTime(date);
 
-    // For test ....
-    public static Date initializeTestNextDate(NewsPeriod newsPeriod, Date inputDate, int boundary) {
-        // Next date
-        Date nextDate = null;
+        calendar.set(Calendar.HOUR_OF_DAY, 0);
+        calendar.set(Calendar.MINUTE, 0);
+        calendar.set(Calendar.SECOND, 0);
 
-        // Initialization
-        switch (newsPeriod) {
-            case none:
-
-                break;
-
-            case daily:
-                // + one day at 00:00 +/- random time in boundary
-                Date addedDayDate = DateUtils.addDays(inputDate, 1);
-                nextDate = getNextRandomDate(addedDayDate, boundary);
-
-                break;
-
-            case weekly:
-                // + one week at 00:00 +/- random time in boundary
-                Date addedWeekDate = DateUtils.addWeeks(inputDate, 1);
-                nextDate = getNextRandomDate(addedWeekDate, boundary);
-
-                break;
-
-            case error:
-                // + one hour +/- random time in boundary
-                Date addedHourDate = DateUtils.addHours(inputDate, 1);
-                nextDate = getNextRandomDate(addedHourDate, boundary);
-
-                break;
-
-        }
-
-        return nextDate;
+        return calendar.getTime();
     }
 
 }

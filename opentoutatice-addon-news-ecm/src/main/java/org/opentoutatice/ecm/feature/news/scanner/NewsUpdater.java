@@ -4,7 +4,6 @@
 package org.opentoutatice.ecm.feature.news.scanner;
 
 import java.io.Serializable;
-import java.util.Calendar;
 import java.util.Date;
 import java.util.Map;
 
@@ -45,39 +44,41 @@ public class NewsUpdater extends AbstractScanUpdater {
     /** UserWorkspaces root. */
     private static DocumentModel userWorkspacesRoot = null;
 
-    // /** Space id. */
-    // private static String spaceId;
-    // /** Space id changer. */
-    // private static boolean spaceIdChanged = false;
-    //
-    // /**
-    // * @return the spaceId
-    // */
-    // public static String getSpaceId() {
-    // return spaceId;
-    // }
-    //
-    // /**
-    // * @param spaceId the spaceId to set
-    // */
-    // public static void setSpaceId(String spaceId) {
-    // NewsUpdater.spaceId = spaceId;
-    // }
+    /**
+     * @return the currentDate
+     */
+    public Date getCurrentDate() {
+        return currentDate;
+    }
 
-    // /**
-    // * @return the spaceIdChanged
-    // */
-    // public static boolean hasSpaceIdChanged() {
-    // return spaceIdChanged;
-    // }
-    //
-    // /**
-    // * @param spaceIdChanged the spaceIdChanged to set
-    // */
-    // public static void setSpaceIdChanged(boolean spaceIdChanged) {
-    // NewsUpdater.spaceIdChanged = spaceIdChanged;
-    // }
+    /**
+     * @return the member
+     */
+    public SpaceMember getMember() {
+        return member;
+    }
 
+    /**
+     * @param member the member to set
+     */
+    public void setMember(SpaceMember member) {
+        this.member = member;
+    }
+
+
+    /**
+     * @param currentDate the currentDate to set
+     */
+    public void setCurrentDate(Date currentDate) {
+        this.currentDate = currentDate;
+    }
+
+    /**
+     * Gets root of user's workspaces.
+     * 
+     * @return
+     * @throws Exception
+     */
     public static DocumentModel getUserWorkspacesRoot() throws Exception {
         if (userWorkspacesRoot == null) {
             LoginContext login = null;
@@ -101,6 +102,7 @@ public class NewsUpdater extends AbstractScanUpdater {
         }
         return userWorkspacesRoot;
     }
+
 
     /**
      * Getter for test mode.
@@ -225,7 +227,7 @@ public class NewsUpdater extends AbstractScanUpdater {
 
             // Debug
             if (log.isDebugEnabled()) {
-                log.debug("[NO MODE SET] [accepts]: " + accepts + ": " + "(hasSubscribed=" + hasSubscribed + " / noPeriod=" + noPeriod + " / mustNotify="
+                log.debug("[NO TEST MODE] [accepts]: " + accepts + ": " + "(hasSubscribed=" + hasSubscribed + " / noPeriod=" + noPeriod + " / mustNotify="
                         + mustNotify);
             }
 
@@ -241,7 +243,7 @@ public class NewsUpdater extends AbstractScanUpdater {
 
                 // Debug
                 if (log.isDebugEnabled()) {
-                    log.debug("[MODE SET] [accepts]: " + accepts + ": " + "(hasSubscribed=" + hasSubscribed + " / noPeriod=" + noPeriod + " / mustNotify="
+                    log.debug("[TEST MODE] [accepts]: " + accepts + ": " + "(hasSubscribed=" + hasSubscribed + " / noPeriod=" + noPeriod + " / mustNotify="
                             + mustNotify);
                 }
 
@@ -268,17 +270,12 @@ public class NewsUpdater extends AbstractScanUpdater {
      */
     @Override
     public Object initialize(int index, Object scannedObject) throws Exception {
-        //
-        // if(hasSpaceIdChanged()){
-        // index = 0;
-        // }
-
         // Next news date
         Date nextNewsDate = this.member.getNextNewsDate();
 
         if (nextNewsDate == null) {
             // Member not yet notified: initialize
-            nextNewsDate = getNextNewsDate(this.currentDate, getBoundaryValue(this.member.getNewsPeriod()));
+            nextNewsDate = getNextNewsDate(this.currentDate, getBoundaryValue(this.member.getNewsPeriod()), true);
             this.member.setNextNewsDate(index, nextNewsDate);
 
             // Set lastNewsDate too
@@ -293,24 +290,13 @@ public class NewsUpdater extends AbstractScanUpdater {
      */
     @Override
     public Object update(int index, Object scannedObject) throws Exception {
-        // Log
-        // if (log.isInfoEnabled()) {
-        // log.info("[Updating news dates] (space " + ((SpaceMember) scannedObject).getSpaceTitle() + ")");
-        // }
-
-        //
-        // if(hasSpaceIdChanged()){
-        // index = 0;
-        // }
-
-        // LastNewsDate = previous nextNewsDate
-        Date storedNextNewsDate = ((SpaceMember) scannedObject).getNextNewsDate();
-        Calendar calendar = Calendar.getInstance();
-        calendar.setTime(storedNextNewsDate);
-        this.member.setLastNewsDate(index, calendar.getTime());
+        // LastNewsDate = current Date
+        this.member.setLastNewsDate(index, this.currentDate);
 
         // Update nextNewsDate
-        Date newsDate = getNextNewsDate(this.currentDate, getBoundaryValue(this.member.getNewsPeriod()));
+        Date storedNextNewsDate = ((SpaceMember) scannedObject).getNextNewsDate();
+
+        Date newsDate = getNextNewsDate(storedNextNewsDate, getBoundaryValue(this.member.getNewsPeriod()), false);
         this.member.setNextNewsDate(index, newsDate);
 
         return this.member;
@@ -319,15 +305,15 @@ public class NewsUpdater extends AbstractScanUpdater {
     /**
      * Gets next news Date.
      * 
-     * @param nextBaseDate
+     * @param previousBaseDate
      * @return Date
      * @throws Exception
      */
-    public Date getNextNewsDate(Date nextBaseDate, String boundaryValue) throws Exception {
-        int nextInterval = Integer.valueOf(boundaryValue).intValue();
+    public Date getNextNewsDate(Date previousBaseDate, String boundaryValue, boolean init) throws Exception {
+        int interval = Integer.valueOf(boundaryValue).intValue();
         NewsPeriod newsPeriod = this.member.getNewsPeriod();
 
-        return DateUpdaterTools.initializeNextDate(newsPeriod, nextBaseDate, nextInterval);
+        return DateUpdaterTools.computeNextDate(newsPeriod, previousBaseDate, interval, init);
     }
 
     /**
@@ -336,7 +322,7 @@ public class NewsUpdater extends AbstractScanUpdater {
     @Override
     public Object updateOnError(int index, Object scannedObject) throws Exception {
         // NextNewsDate
-        Date newsDate = getNextNewsDate(this.currentDate, getBoundaryValue(NewsPeriod.error));
+        Date newsDate = getNextNewsDate(this.currentDate, getBoundaryValue(NewsPeriod.error), false);
         this.member.setNextNewsDate(index, newsDate);
 
         return this.member;

@@ -30,6 +30,8 @@ import org.opentoutatice.ecm.feature.news.model.SpaceMember;
 import org.opentoutatice.ecm.feature.news.model.SpaceMemberConstants;
 import org.opentoutatice.ecm.feature.news.scanner.DateUpdaterTools;
 import org.opentoutatice.ecm.reporter.AbstractMailer;
+import org.opentoutatice.ecm.reporting.test.mode.ErrorTestMode;
+import org.opentoutatice.ecm.reporting.test.mode.ErrorTestModeException;
 
 import fr.toutatice.ecm.platform.core.constants.ToutaticeNuxeoStudioConst;
 import fr.toutatice.ecm.platform.core.helper.ToutaticeDocumentHelper;
@@ -125,11 +127,11 @@ public class NewsMailer extends AbstractMailer {
      * Mail data is of Map<String, Object> type.
      */
     @Override
-    public Object build(Object data) throws Exception {
-        // Info
-        // if (log.isInfoEnabled()) {
-        // log.info("[Buildinhg report]");
-        // }
+    public Object build(int index, Object data) throws Exception {
+        // Error test mode
+        if (ErrorTestMode.generateError(6)) {
+            throw new ErrorTestModeException("Error on NewsMailer#build");
+        }
 
         // Input
         SpaceMember member = (SpaceMember) data;
@@ -439,6 +441,11 @@ public class NewsMailer extends AbstractMailer {
 
     @Override
     public void send(Object content) throws Exception {
+        // Use case errors
+        if (ErrorTestMode.isActivated()) {
+            this.sends = true;
+        }
+
         if (this.sends) {
             super.send(content);
         }
