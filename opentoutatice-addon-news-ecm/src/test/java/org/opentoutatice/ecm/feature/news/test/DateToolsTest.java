@@ -17,6 +17,7 @@ import org.junit.runner.RunWith;
 import org.nuxeo.runtime.test.runner.Features;
 import org.nuxeo.runtime.test.runner.FeaturesRunner;
 import org.nuxeo.runtime.test.runner.RuntimeFeature;
+import org.opentoutatice.ecm.feature.news.consistency.DateRepairer;
 import org.opentoutatice.ecm.feature.news.scanner.DateUpdaterTools;
 import org.opentoutatice.ecm.feature.news.scanner.io.NewsPeriod;
 
@@ -35,33 +36,44 @@ public class DateToolsTest {
     /** Weekly constants. */
     private static final int WEEKLY_BOUNDARY = 720;
 
-    /** Formatter. */
+    /** Formatters. */
     private static final SimpleDateFormat formatter = new SimpleDateFormat("dd-MM-yyyy HH:mm:ss");
+    private static final SimpleDateFormat formatterWithDayName = new SimpleDateFormat("EEEEE dd-MM-yyyy HH:mm:ss");
 
     /** Print dates or not. */
     private static final boolean PRINT = false;
     /** Temprary: to avoid skip test in mvn install. */
     private static final boolean TEST = false;
 
+    /**
+     * {@link DateUpdaterTools#computeNextDate(NewsPeriod, Date, int, boolean)} takes current Date in entry.
+     * We test here:
+     * <ul>
+     * <li>initialization of NextDate from current Date if notification is daily or weekly</li>
+     * <li>update of NextDate from current Date and current Date + n days when daily and current Date + n weeks when weekly</li>
+     * </ul>
+     * 
+     * @throws ParseException
+     */
     @Test
-    public void testNextDate() throws ParseException {
+    public void testComputeNextDate() throws ParseException {
         if (TEST) {
 
             Calendar calendar = Calendar.getInstance();
-            // Date inputDate = calendar.getTime();
-            Date inputDate = getRandomDate(calendar);
+            Date currentDate = calendar.getTime();
 
             if (PRINT) {
-                System.out.println("[INPUT]: " + formatter.format(inputDate));
+                System.out.println("[INPUT]: " + formatter.format(currentDate));
             }
 
             for (int index = 0; index < 10; index++) {
                 // Check daily init
-                Date initDate = checkNextDate(calendar, inputDate, NewsPeriod.daily, 1, DAILY_BOUNDARY, true);
+                Date initDate = checkNextDate(calendar, currentDate, NewsPeriod.daily, 1, DAILY_BOUNDARY, true);
                 // Check daily update
+                Date nextCurrentDate = initDate;
                 for (int indexDu = 0; indexDu < 100; indexDu++) {
-                    Date nextDailyDate = checkNextDate(calendar, initDate, NewsPeriod.daily, 1, DAILY_BOUNDARY, false);
-                    initDate = nextDailyDate;
+                    checkNextDate(calendar, nextCurrentDate, NewsPeriod.daily, 1, DAILY_BOUNDARY, false);
+                    nextCurrentDate = DateUtils.addDays(nextCurrentDate, 1);
                 }
 
                 if (PRINT) {
@@ -69,19 +81,20 @@ public class DateToolsTest {
                 }
 
                 // Check weekly init
-                Date initWeeklyDate = checkNextDate(calendar, inputDate, NewsPeriod.weekly, 7, WEEKLY_BOUNDARY, true);
+                Date initWeeklyDate = checkNextDate(calendar, currentDate, NewsPeriod.weekly, 7, WEEKLY_BOUNDARY, true);
                 // Must be a Sunday
                 calendar.setTime(initWeeklyDate);
-                Assert.assertTrue(calendar.get(Calendar.DAY_OF_WEEK) == 1 || calendar.get(Calendar.DAY_OF_WEEK) == 2);
+                Assert.assertTrue(calendar.get(Calendar.DAY_OF_WEEK) == Calendar.SUNDAY || calendar.get(Calendar.DAY_OF_WEEK) == Calendar.MONDAY);
 
                 // Check weekly update
+                nextCurrentDate = initWeeklyDate;
                 for (int indexWu = 0; indexWu < 100; indexWu++) {
-                    Date nextWeeklyDate = checkNextDate(calendar, initWeeklyDate, NewsPeriod.weekly, 7, WEEKLY_BOUNDARY, false);
+                    Date nextWeeklyDate = checkNextDate(calendar, nextCurrentDate, NewsPeriod.weekly, 7, WEEKLY_BOUNDARY, false);
                     // Must be a Sunday before 00 or Monday after 00
                     calendar.setTime(nextWeeklyDate);
-                    Assert.assertTrue(calendar.get(Calendar.DAY_OF_WEEK) == 1 || calendar.get(Calendar.DAY_OF_WEEK) == 2);
+                    Assert.assertTrue(calendar.get(Calendar.DAY_OF_WEEK) == Calendar.SUNDAY || calendar.get(Calendar.DAY_OF_WEEK) == Calendar.MONDAY);
 
-                    initWeeklyDate = nextWeeklyDate;
+                    nextCurrentDate = DateUtils.addDays(nextCurrentDate, 7);
                 }
 
                 if (PRINT) {
@@ -92,6 +105,48 @@ public class DateToolsTest {
         }
     }
 
+    @Test
+    public void testCheckNRepair() throws ParseException {
+        Calendar calendar = Calendar.getInstance();
+        // Get date not beetween a Sunday at 12:00 and Sunday at 12:00
+        if (PRINT) {
+            System.out.println("Around Sunday at 12:00 and Monday at 12:00? ");
+        }
+
+        for (int nbTests = 0; nbTests < 100; nbTests++) {
+            Date randomDate = getRandomDate(calendar);
+            // Date randomDate = formatter.parse("19-12-2021 10:09:00");
+            Date aroundSundayDate = DateRepairer.checkDateNRepair(NewsPeriod.weekly, randomDate, WEEKLY_BOUNDARY);
+
+            if (PRINT) {
+                if (aroundSundayDate != null) {
+                    System.out.println(formatterWithDayName.format(randomDate) + " -> " + formatterWithDayName.format(aroundSundayDate));
+                } else {
+                    System.out.println(formatterWithDayName.format(randomDate) + " -> No need");
+                }
+            }
+
+            if (aroundSundayDate != null) {
+                assertAroundSunday(calendar, aroundSundayDate);
+            } else {
+                assertAroundSunday(calendar, randomDate);
+            }
+
+        }
+    }
+
+    /**
+     * @param calendar
+     * @param aroundSundayDate
+     */
+    protected void assertAroundSunday(Calendar calendar, Date aroundSundayDate) {
+        calendar.setTime(aroundSundayDate);
+
+        int day = calendar.get(Calendar.DAY_OF_WEEK);
+        int minutes = calendar.get(Calendar.HOUR_OF_DAY) * 60 + calendar.get(Calendar.MINUTE);
+
+        Assert.assertTrue((day == Calendar.SUNDAY && minutes >= WEEKLY_BOUNDARY) || (day == Calendar.MONDAY && minutes <= WEEKLY_BOUNDARY));
+    }
 
     /**
      * @param calendar
@@ -127,7 +182,8 @@ public class DateToolsTest {
 
             // Day
             if (PRINT) {
-                System.out.println(formatter.format(minDate) + " < " + formatter.format(nextDate) + " < " + formatter.format(maxDate));
+                String uc = init ? "[Init]:   " : "[Update]: ";
+                System.out.println(uc + formatter.format(minDate) + " < " + formatter.format(nextDate) + " < " + formatter.format(maxDate));
             }
 
             Assert.assertTrue(nextDate.compareTo(minDate) >= 0);

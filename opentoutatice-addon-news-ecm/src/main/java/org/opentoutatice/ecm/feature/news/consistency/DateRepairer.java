@@ -6,6 +6,7 @@ package org.opentoutatice.ecm.feature.news.consistency;
 import java.util.Calendar;
 import java.util.Date;
 
+import org.apache.commons.lang.time.DateUtils;
 import org.opentoutatice.ecm.feature.news.scanner.DateUpdaterTools;
 import org.opentoutatice.ecm.feature.news.scanner.io.NewsPeriod;
 
@@ -43,7 +44,9 @@ public class DateRepairer {
                 int minutes = calendar.get(Calendar.HOUR_OF_DAY) * 60 + calendar.get(Calendar.MINUTE);
 
                 if (!((day == Calendar.SUNDAY && minutes >= boundary) || (day == Calendar.MONDAY && minutes <= boundary))) {
-                    repairedDate = DateUpdaterTools.getNextSunday(dateToCheck);
+                    repairedDate = DateUpdaterTools.setMidnight(DateUpdaterTools.getNextSunday(dateToCheck));
+                    repairedDate = DateUtils.addDays(repairedDate, 1);
+                    repairedDate = DateUpdaterTools.getNextRandomDate(repairedDate, boundary);
                 }
                 break;
 

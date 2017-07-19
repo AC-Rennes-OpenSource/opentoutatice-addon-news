@@ -12,7 +12,6 @@ import org.apache.commons.lang.time.DateUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.nuxeo.runtime.api.Framework;
-import org.opentoutatice.ecm.feature.news.consistency.DateRepairer;
 import org.opentoutatice.ecm.feature.news.scanner.io.NewsPeriod;
 
 
@@ -98,13 +97,8 @@ public class DateUpdaterTools {
                     addedWeekDate = DateUtils.addDays(addedWeekDate, 1);
                 } else {
                     // + one week at 00:00 +/- random time in boundary
-                    Date repairedDate = DateRepairer.checkDateNRepair(newsPeriod, inputDate, boundary);
-                    if (repairedDate != null) {
-                        addedWeekDate = repairedDate;
-                    } else {
-                        inputDate = setMidnight(inputDate, boundary);
-                        addedWeekDate = DateUtils.addWeeks(inputDate, 1);
-                    }
+                    inputDate = setMidnight(inputDate, boundary);
+                    addedWeekDate = DateUtils.addWeeks(inputDate, 1);
                 }
 
                 nextDate = getNextRandomDate(addedWeekDate, boundary);
@@ -180,7 +174,7 @@ public class DateUpdaterTools {
         calendar.setTime(inputDate);
 
         int currentDay = calendar.get(Calendar.DAY_OF_WEEK);
-        int shiftNextSunday = currentDay != Calendar.SUNDAY ? 8 - currentDay : currentDay;
+        int shiftNextSunday = currentDay != Calendar.SUNDAY ? 8 - currentDay : 0;
 
         return DateUtils.addDays(inputDate, shiftNextSunday);
     }
@@ -216,9 +210,9 @@ public class DateUpdaterTools {
         calendar.set(Calendar.MINUTE, shift);
         return calendar.getTime();
     }
-    
+
     /**
-     * Sets given date (which is in daily, weekly, ... boundaries) at midnight. 
+     * Sets given date (which is in daily, weekly, ... boundaries) at midnight.
      * 
      * @param calendar
      */
@@ -237,7 +231,7 @@ public class DateUpdaterTools {
         } else {
             calendar.set(Calendar.MINUTE, minutes);
         }
-        
+
         calendar.set(Calendar.HOUR_OF_DAY, 0);
         calendar.set(Calendar.MINUTE, 0);
         calendar.set(Calendar.SECOND, 0);

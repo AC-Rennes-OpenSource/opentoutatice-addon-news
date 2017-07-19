@@ -16,9 +16,11 @@ import org.nuxeo.ecm.core.api.CoreSession;
 import org.nuxeo.ecm.core.api.DocumentModel;
 import org.nuxeo.ecm.core.api.DocumentModelList;
 import org.nuxeo.runtime.api.Framework;
+import org.opentoutatice.ecm.feature.news.consistency.DateRepairer;
 import org.opentoutatice.ecm.feature.news.model.SpaceMember;
 import org.opentoutatice.ecm.feature.news.scanner.io.NewsPeriod;
 import org.opentoutatice.ecm.scanner.AbstractScanUpdater;
+import org.richfaces.component.NumberUtils;
 
 import fr.toutatice.ecm.platform.core.helper.ToutaticeQueryHelper;
 
@@ -280,6 +282,15 @@ public class NewsUpdater extends AbstractScanUpdater {
 
             // Set lastNewsDate too
             this.member.setLastNewsDate(index, this.currentDate);
+        } else {
+            // Consistency
+            NewsPeriod period = this.member.getNewsPeriod();
+            int boundary = NumberUtils.getNumber(getBoundaryValue(period)).intValue();
+
+            nextNewsDate = DateRepairer.checkDateNRepair(period, nextNewsDate, boundary);
+            if (nextNewsDate != null) {
+                this.member.setNextNewsDate(index, nextNewsDate);
+            }
         }
 
         return this.member;
@@ -294,9 +305,7 @@ public class NewsUpdater extends AbstractScanUpdater {
         this.member.setLastNewsDate(index, this.currentDate);
 
         // Update nextNewsDate
-        Date storedNextNewsDate = ((SpaceMember) scannedObject).getNextNewsDate();
-
-        Date newsDate = getNextNewsDate(storedNextNewsDate, getBoundaryValue(this.member.getNewsPeriod()), false);
+        Date newsDate = getNextNewsDate(this.currentDate, getBoundaryValue(this.member.getNewsPeriod()), false);
         this.member.setNextNewsDate(index, newsDate);
 
         return this.member;
