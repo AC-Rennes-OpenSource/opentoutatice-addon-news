@@ -7,7 +7,6 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.concurrent.ThreadLocalRandom;
 
-import org.apache.commons.lang.time.DateFormatUtils;
 import org.apache.commons.lang.time.DateUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -54,108 +53,31 @@ public class DateUpdaterTools {
         // Result
         Date nextDate = null;
 
-        // For debug
-        String inputStrDate = DateFormatUtils.format(inputDate, DATE_TIME_FORMAT);
-
         // Initialization
         switch (newsPeriod) {
 
             case daily:
                 // + one day at 00:00 +/- random time in boundary
-                if (init) {
-                    inputDate = setMidnight(inputDate);
-                } else {
-                    inputDate = setMidnight(inputDate, boundary);
-                }
-                Date addedDayDate = DateUtils.addDays(inputDate, 1);
+                Date addedDayDate = setMidnight(inputDate, boundary);
+                addedDayDate = DateUtils.addDays(addedDayDate, 1);
 
                 nextDate = getNextRandomDate(addedDayDate, boundary);
-
-                if (log.isDebugEnabled()) {
-                    log.debug("[NO TEST MODE] [Daily] NextDate = " + inputStrDate + " -> "
-                            + DateFormatUtils.format(nextDate, DateUpdaterTools.DATE_TIME_FORMAT));
-                }
-
-                if (NewsUpdater.isTestModeSet()) {
-                    // Gap in minutes
-                    int gap = Integer.valueOf(Framework.getProperty("ottc.news.scan.daily.test.gap", "10"));
-                    nextDate = DateUtils.addMinutes(inputDate, gap);
-
-                    if (log.isDebugEnabled()) {
-                        log.debug("[TEST MODE] [Daily] NextDate = " + inputStrDate + " -> "
-                                + DateFormatUtils.format(nextDate, DateUpdaterTools.DATE_TIME_FORMAT));
-                    }
-                }
-
                 break;
 
             case weekly:
-                Date addedWeekDate = null;
-                // Init: set next Sunday
-                if (init) {
-                    addedWeekDate = setMidnight(getNextSunday(inputDate));
-                    addedWeekDate = DateUtils.addDays(addedWeekDate, 1);
-                } else {
-                    // + one week at 00:00 +/- random time in boundary
-                    inputDate = setMidnight(inputDate, boundary);
-                    addedWeekDate = DateUtils.addWeeks(inputDate, 1);
-                }
+                // Next Sunday at 00:00 +/- random time in boundary
+                Date addedWeekDate = setMidnight(inputDate, boundary);
+                addedWeekDate = getNextMonday(addedWeekDate);
 
                 nextDate = getNextRandomDate(addedWeekDate, boundary);
-
-                if (log.isDebugEnabled()) {
-                    log.debug("[NO TEST MODE] [Weekly] NextDate = " + inputStrDate + " -> "
-                            + DateFormatUtils.format(nextDate, DateUpdaterTools.DATE_TIME_FORMAT));
-                }
-
-
-                if (NewsUpdater.isTestModeSet()) {
-                    // Gap in minutes
-                    int gap = Integer.valueOf(Framework.getProperty("ottc.news.scan.weekly.test.gap", "10"));
-                    nextDate = DateUtils.addMinutes(inputDate, gap);
-
-                    if (log.isDebugEnabled()) {
-                        log.debug("[TEST MODE] [Weekly] NextDate = " + inputStrDate + " -> "
-                                + DateFormatUtils.format(nextDate, DateUpdaterTools.DATE_TIME_FORMAT));
-                    }
-                }
-
                 break;
 
             case none:
-                if (NewsUpdater.isTestModeSet()) {
-                    // Gap in minutes
-                    int gap = Integer.valueOf(Framework.getProperty("ottc.news.scan.none.test.gap", "10"));
-                    nextDate = DateUtils.addMinutes(inputDate, gap);
-
-                    if (log.isDebugEnabled()) {
-                        log.debug("[TEST MODE] [None] NextDate = " + inputStrDate + " -> "
-                                + DateFormatUtils.format(nextDate, DateUpdaterTools.DATE_TIME_FORMAT));
-                    }
-                }
-
                 break;
 
             case error:
                 // + one hour +/- random time in boundary
                 nextDate = DateUtils.addHours(inputDate, 2);
-
-                if (log.isDebugEnabled()) {
-                    log.debug("[NO TEST MODE] [Error] NextDate = " + inputStrDate + " -> "
-                            + DateFormatUtils.format(nextDate, DateUpdaterTools.DATE_TIME_FORMAT));
-                }
-
-                if (NewsUpdater.isTestModeSet()) {
-                    // Gap in minutes
-                    int gap = Integer.valueOf(Framework.getProperty("ottc.news.scan.error.test.gap", "10"));
-                    nextDate = DateUtils.addMinutes(inputDate, gap);
-
-                    if (log.isDebugEnabled()) {
-                        log.debug("[TEST MODE] [Error] NextDate = " + inputStrDate + " -> "
-                                + DateFormatUtils.format(nextDate, DateUpdaterTools.DATE_TIME_FORMAT));
-                    }
-                }
-
                 break;
 
         }
@@ -169,12 +91,12 @@ public class DateUpdaterTools {
      * @param inputDate
      * @return next Sunday
      */
-    public static Date getNextSunday(Date inputDate) {
+    public static Date getNextMonday(Date inputDate) {
         Calendar calendar = Calendar.getInstance();
         calendar.setTime(inputDate);
 
         int currentDay = calendar.get(Calendar.DAY_OF_WEEK);
-        int shiftNextSunday = currentDay != Calendar.SUNDAY ? 8 - currentDay : 0;
+        int shiftNextSunday = currentDay != Calendar.MONDAY ? 9 - currentDay : 7;
 
         return DateUtils.addDays(inputDate, shiftNextSunday);
     }

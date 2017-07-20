@@ -20,18 +20,3 @@ ottc.scan.error.test.mode=false
 
 ## Send mail or not
 ottc.news.scan.send.mail=true
-
-# Filers conditions
-ottc.news.scan.accept.subscr.test=false
-ottc.news.scan.accept.none.period.test=false
-
-# Daily, weekly and none values in minutes
-ottc.news.scan.daily.test.gap=15
-# Must be > 0
-ottc.news.scan.daily.test.boundary=2
-ottc.news.scan.weekly.test.gap=30
-# Must be > 0
-ottc.news.scan.weekly.test.boundary=4
-ottc.news.scan.error.test.gap=1
-# Must be > 0
-ottc.news.scan.error.test.boundary=1 

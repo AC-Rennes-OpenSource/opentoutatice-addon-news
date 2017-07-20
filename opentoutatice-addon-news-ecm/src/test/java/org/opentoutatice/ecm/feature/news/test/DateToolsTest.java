@@ -56,19 +56,19 @@ public class DateToolsTest {
      * @throws ParseException
      */
     @Test
-    public void testComputeNextDate() throws ParseException {
+    public void testNextDate() throws ParseException {
         if (TEST) {
 
             Calendar calendar = Calendar.getInstance();
-            Date currentDate = calendar.getTime();
+            Date currentCronDate = getDateBeetweenHours(calendar, 20, 28);
 
             if (PRINT) {
-                System.out.println("[INPUT]: " + formatter.format(currentDate));
+                System.out.println("[INPUT]: " + formatter.format(currentCronDate));
             }
 
             for (int index = 0; index < 10; index++) {
                 // Check daily init
-                Date initDate = checkNextDate(calendar, currentDate, NewsPeriod.daily, 1, DAILY_BOUNDARY, true);
+                Date initDate = checkNextDate(calendar, currentCronDate, NewsPeriod.daily, 1, DAILY_BOUNDARY, true);
                 // Check daily update
                 Date nextCurrentDate = initDate;
                 for (int indexDu = 0; indexDu < 100; indexDu++) {
@@ -81,7 +81,7 @@ public class DateToolsTest {
                 }
 
                 // Check weekly init
-                Date initWeeklyDate = checkNextDate(calendar, currentDate, NewsPeriod.weekly, 7, WEEKLY_BOUNDARY, true);
+                Date initWeeklyDate = checkNextDate(calendar, currentCronDate, NewsPeriod.weekly, 7, WEEKLY_BOUNDARY, true);
                 // Must be a Sunday
                 calendar.setTime(initWeeklyDate);
                 Assert.assertTrue(calendar.get(Calendar.DAY_OF_WEEK) == Calendar.SUNDAY || calendar.get(Calendar.DAY_OF_WEEK) == Calendar.MONDAY);
@@ -127,9 +127,9 @@ public class DateToolsTest {
             }
 
             if (aroundSundayDate != null) {
-                assertAroundSunday(calendar, aroundSundayDate);
+                assertAroundMonday(calendar, aroundSundayDate);
             } else {
-                assertAroundSunday(calendar, randomDate);
+                assertAroundMonday(calendar, randomDate);
             }
 
         }
@@ -139,7 +139,7 @@ public class DateToolsTest {
      * @param calendar
      * @param aroundSundayDate
      */
-    protected void assertAroundSunday(Calendar calendar, Date aroundSundayDate) {
+    protected void assertAroundMonday(Calendar calendar, Date aroundSundayDate) {
         calendar.setTime(aroundSundayDate);
 
         int day = calendar.get(Calendar.DAY_OF_WEEK);
@@ -157,20 +157,7 @@ public class DateToolsTest {
         calendar.setTime(inputDate);
 
         // Min Date
-        Date minDate = null;
-        if (init) {
-            if (NewsPeriod.daily.equals(newsPeriod)) {
-                minDate = shiftDate(DateUpdaterTools.setMidnight(inputDate), boundary);
-                minDate = DateUtils.addDays(minDate, 1);
-            } else if (NewsPeriod.weekly.equals(newsPeriod)) {
-                Date nextSunday = DateUpdaterTools.setMidnight(DateUpdaterTools.getNextSunday(inputDate));
-                nextSunday = DateUtils.addDays(nextSunday, 1);
-                minDate = shiftDate(nextSunday, boundary);
-            }
-        } else {
-            minDate = DateUtils.addMinutes(DateUpdaterTools.setMidnight(inputDate, boundary), -boundary);
-            minDate = DateUtils.addDays(minDate, addedDays);
-        }
+        Date minDate = getMinDate(inputDate, newsPeriod, addedDays, boundary, init);
 
         // Max Date
         Date maxDate = DateUtils.addMinutes(minDate, 2 * boundary);
@@ -193,6 +180,34 @@ public class DateToolsTest {
         }
 
         return nextDate;
+    }
+
+    /**
+     * @param inputDate
+     * @param newsPeriod
+     * @param addedDays
+     * @param boundary
+     * @param init
+     * @param minDate
+     * @return
+     */
+    protected Date getMinDate(Date inputDate, NewsPeriod newsPeriod, int addedDays, int boundary, boolean init) {
+        Date minDate = null;
+        if (init) {
+            if (NewsPeriod.daily.equals(newsPeriod)) {
+                minDate = shiftDate(DateUpdaterTools.setMidnight(inputDate), boundary);
+                minDate = DateUtils.addDays(minDate, 1);
+            } else if (NewsPeriod.weekly.equals(newsPeriod)) {
+                inputDate = DateUpdaterTools.setMidnight(inputDate);
+                Date nextMonday = DateUpdaterTools.getNextMonday(inputDate);
+                // nextMonday = DateUtils.addDays(nextMonday, 1);
+                minDate = shiftDate(nextMonday, boundary);
+            }
+        } else {
+            minDate = DateUtils.addMinutes(DateUpdaterTools.setMidnight(inputDate, boundary), -boundary);
+            minDate = DateUtils.addDays(minDate, addedDays);
+        }
+        return minDate;
     }
 
     private static final int MINUTES_IN_YEAR = 365 * 24 * 60;
@@ -218,6 +233,40 @@ public class DateToolsTest {
 
     private Date shiftDate(Date date, int boundary) {
         return DateUtils.addMinutes(date, -boundary);
+    }
+
+    @Test
+    public void testComputeNextDate() throws ParseException {
+
+        Date currentDate = formatter.parse("20-07-2017 20:15:00");
+        // Date nextDate = formatter.parse("7-07-2017 22:15");
+
+        System.out.println("INIT ===");
+
+        Date nextDate = DateUpdaterTools.computeNextDate(NewsPeriod.daily, currentDate, DAILY_BOUNDARY, true);
+        System.out.println("Next Daily: " + formatter.format(nextDate));
+
+        nextDate = DateUpdaterTools.computeNextDate(NewsPeriod.weekly, currentDate, WEEKLY_BOUNDARY, true);
+        System.out.println("Next Weekly repaired: " + formatter.format(nextDate));
+
+        currentDate = formatter.parse("24-07-2017 09:25:14");
+        nextDate = DateUpdaterTools.computeNextDate(NewsPeriod.weekly, currentDate, WEEKLY_BOUNDARY, true);
+        System.out.println("Next Weekly: " + formatter.format(nextDate));
+
+        System.out.println("UPDATE ===");
+
+        currentDate = formatter.parse("20-07-2017 20:15:00");
+
+        nextDate = DateUpdaterTools.computeNextDate(NewsPeriod.daily, currentDate, DAILY_BOUNDARY, false);
+        System.out.println("Next Daily: " + formatter.format(nextDate));
+
+        nextDate = DateUpdaterTools.computeNextDate(NewsPeriod.weekly, currentDate, WEEKLY_BOUNDARY, false);
+        System.out.println("Next Weekly repaired: " + formatter.format(nextDate));
+
+        currentDate = formatter.parse("24-07-2017 09:25:14");
+        nextDate = DateUpdaterTools.computeNextDate(NewsPeriod.weekly, currentDate, WEEKLY_BOUNDARY, false);
+        System.out.println("Next Weekly: " + formatter.format(nextDate));
+
     }
 
 }

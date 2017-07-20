@@ -59,8 +59,8 @@ public class SpaceMember {
     /** UserManager. */
     private static UserManager usrManager;
 
-    /** Utilizability. */
-    private boolean usable = true;
+    /** Some not connected users can not have UserWorkspace yet and so UserProfile. */
+    private boolean hasUserProfile = true;
 
     /** User Workspace name max size. */
     private static final int UWS_NAME_MAX_SIZE = Framework.getService(PathSegmentService.class).getMaxSize();
@@ -81,7 +81,7 @@ public class SpaceMember {
      */
     public SpaceMember(Map<String, Serializable> data) throws LoginException {
         super();
-        this.usable = initialize(data);
+        this.hasUserProfile = initialize(data);
     }
 
 
@@ -107,8 +107,8 @@ public class SpaceMember {
     /**
      * @return the usable
      */
-    public boolean isUsable() {
-        return usable;
+    public boolean hasUserProfile() {
+        return hasUserProfile;
     }
 
     /**

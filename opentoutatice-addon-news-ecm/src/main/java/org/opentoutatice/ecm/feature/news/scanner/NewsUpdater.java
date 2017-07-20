@@ -9,6 +9,7 @@ import java.util.Map;
 
 import javax.security.auth.login.LoginContext;
 
+import org.apache.commons.lang.time.DateFormatUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.nuxeo.ecm.core.api.CoreInstance;
@@ -139,14 +140,7 @@ public class NewsUpdater extends AbstractScanUpdater {
                 boundaryValue = (String) getParams().get(DateUpdaterTools.NEXT_DAILY_BOUNDARY);
 
                 if (log.isTraceEnabled()) {
-                    log.trace("[NO MODE TEST] [Period]: " + boundaryValue);
-                }
-
-                if (isTestModeSet()) {
-                    boundaryValue = Framework.getProperty("ottc.news.scan.daily.test.boundary");
-                    if (log.isDebugEnabled()) {
-                        log.trace("[MODE TEST] [Period]: " + boundaryValue);
-                    }
+                    log.trace("[Period]: " + boundaryValue);
                 }
 
                 break;
@@ -155,14 +149,7 @@ public class NewsUpdater extends AbstractScanUpdater {
                 boundaryValue = (String) getParams().get(DateUpdaterTools.NEXT_WEEKLY_BOUNDARY);
 
                 if (log.isTraceEnabled()) {
-                    log.trace("[NO MODE TEST] [Period]: " + boundaryValue);
-                }
-
-                if (isTestModeSet()) {
-                    boundaryValue = Framework.getProperty("ottc.news.scan.weekly.test.boundary");
-                    if (log.isTraceEnabled()) {
-                        log.trace("[MODE TEST] [Period]: " + boundaryValue);
-                    }
+                    log.trace("[Period]: " + boundaryValue);
                 }
 
                 break;
@@ -171,14 +158,7 @@ public class NewsUpdater extends AbstractScanUpdater {
                 boundaryValue = (String) getParams().get(DateUpdaterTools.NEXT_ERROR_BOUNDARY);
 
                 if (log.isTraceEnabled()) {
-                    log.trace("[NO MODE TEST] [Period]: " + boundaryValue);
-                }
-
-                if (isTestModeSet()) {
-                    boundaryValue = Framework.getProperty("ottc.news.scan.error.test.boundary");
-                    if (log.isTraceEnabled()) {
-                        log.trace("[MODE TEST] [Period]: " + boundaryValue);
-                    }
+                    log.trace("[Period]: " + boundaryValue);
                 }
 
                 break;
@@ -201,54 +181,47 @@ public class NewsUpdater extends AbstractScanUpdater {
     @Override
     public boolean accept(int index, Object scannedObject) throws Exception {
         // Accepts
-        boolean accepts = true;
+        boolean accepts = false;
 
         // Current Date initialized
         this.currentDate = new Date();
 
         // Member
         this.member = (SpaceMember) this.toModel(scannedObject);
-        if (this.member.isUsable()) {
+        if (this.member.hasUserProfile()) {
+            // Next news Date
+            Date nextNewsDate = this.member.getNextNewsDate();
 
             // Member must have subscribed
             boolean hasSubscribed = this.member.hasSubscribed();
-            if (!hasSubscribed) {
-                // Could have subscribed before: reset
+            if (!hasSubscribed && nextNewsDate != null) {
+                // Could have subscribed before: reset to be consistent
                 this.member.setNextNewsDate(index, null);
             }
 
-            // Period subscription
-            boolean noPeriod = NewsPeriod.none.equals(this.member.getNewsPeriod());
+            if (hasSubscribed) {
+                // Period subscription
+                boolean noPeriod = NewsPeriod.none.equals(this.member.getNewsPeriod());
 
-            // Date condition
-            Date nextNewsDate = this.member.getNextNewsDate();
-            // nextNewsDat is null if just subscribed
-            boolean mustNotify = nextNewsDate == null || (nextNewsDate != null && nextNewsDate.getTime() < this.currentDate.getTime());
+                // Date condition:
+                // nextNewsDate is null if just subscribed
+                boolean mustNotify = nextNewsDate == null;
 
-            accepts = hasSubscribed && !noPeriod && mustNotify;
+                // Yet subscribed
+                if (nextNewsDate != null) {
+                    mustNotify = nextNewsDate.getTime() < this.currentDate.getTime();
 
-            // Debug
-            if (log.isDebugEnabled()) {
-                log.debug("[NO TEST MODE] [accepts]: " + accepts + ": " + "(hasSubscribed=" + hasSubscribed + " / noPeriod=" + noPeriod + " / mustNotify="
-                        + mustNotify);
-            }
-
-            if (isTestModeSet()) {
-                // Test mode: accept conditions
-                hasSubscribed = hasSubscribed ? hasSubscribed : Boolean.valueOf(Framework.getProperty("ottc.news.scan.accept.subscr.test", "false"));
-                if (noPeriod && Boolean.valueOf(Framework.getProperty("ottc.news.scan.accept.none.period.test", "false"))) {
-                    noPeriod = false;
+                    if (isTestModeSet()) {
+                        mustNotify = true;
+                    }
                 }
-                mustNotify = nextNewsDate == null || (nextNewsDate != null && nextNewsDate.getTime() < this.currentDate.getTime());
 
-                accepts = hasSubscribed && !noPeriod && mustNotify;
+                accepts = !noPeriod && mustNotify;
 
                 // Debug
                 if (log.isDebugEnabled()) {
-                    log.debug("[TEST MODE] [accepts]: " + accepts + ": " + "(hasSubscribed=" + hasSubscribed + " / noPeriod=" + noPeriod + " / mustNotify="
-                            + mustNotify);
+                    log.debug("[accepts]: " + accepts + ": " + "(hasSubscribed=" + hasSubscribed + " / noPeriod=" + noPeriod + " / mustNotify=" + mustNotify);
                 }
-
             }
 
             if (accepts) {
@@ -259,8 +232,6 @@ public class NewsUpdater extends AbstractScanUpdater {
                 }
             }
 
-        } else {
-            accepts = false;
         }
 
         return accepts;
@@ -274,9 +245,14 @@ public class NewsUpdater extends AbstractScanUpdater {
     public Object initialize(int index, Object scannedObject) throws Exception {
         // Next news date
         Date nextNewsDate = this.member.getNextNewsDate();
+        // Possible nextNewsDate repaired
+        Date repairedNextNewsDate = null;
 
+        // For debug logs
+        Date formerNextNewsDate = nextNewsDate;
+
+        // Member not yet notified: initialize
         if (nextNewsDate == null) {
-            // Member not yet notified: initialize
             nextNewsDate = getNextNewsDate(this.currentDate, getBoundaryValue(this.member.getNewsPeriod()), true);
             this.member.setNextNewsDate(index, nextNewsDate);
 
@@ -287,10 +263,21 @@ public class NewsUpdater extends AbstractScanUpdater {
             NewsPeriod period = this.member.getNewsPeriod();
             int boundary = NumberUtils.getNumber(getBoundaryValue(period)).intValue();
 
-            nextNewsDate = DateRepairer.checkDateNRepair(period, nextNewsDate, boundary);
+            repairedNextNewsDate = DateRepairer.checkDateNRepair(period, nextNewsDate, boundary);
             if (nextNewsDate != null) {
-                this.member.setNextNewsDate(index, nextNewsDate);
+                this.member.setNextNewsDate(index, repairedNextNewsDate);
             }
+        }
+
+        if (log.isDebugEnabled()) {
+            String period = this.member.getNewsPeriod().name();
+            String repairedStatus = repairedNextNewsDate != null ? "(repaired)" : "(not repaired)";
+
+            String inputDate = formerNextNewsDate != null ? DateFormatUtils.format(formerNextNewsDate, DateUpdaterTools.DATE_TIME_FORMAT) : "Undefined";
+            String outputDate = repairedNextNewsDate != null ? DateFormatUtils.format(repairedNextNewsDate, DateUpdaterTools.DATE_TIME_FORMAT)
+                    : DateFormatUtils.format(nextNewsDate, DateUpdaterTools.DATE_TIME_FORMAT);
+
+            log.debug("INIT [" + period + "] NextDate " + repairedStatus + " = " + inputDate + " -> " + outputDate);
         }
 
         return this.member;
@@ -301,12 +288,24 @@ public class NewsUpdater extends AbstractScanUpdater {
      */
     @Override
     public Object update(int index, Object scannedObject) throws Exception {
+        // For debug logs
+        Date formerNextNewsDate = this.member.getNextNewsDate();
+
         // LastNewsDate = current Date
         this.member.setLastNewsDate(index, this.currentDate);
 
         // Update nextNewsDate
-        Date newsDate = getNextNewsDate(this.currentDate, getBoundaryValue(this.member.getNewsPeriod()), false);
-        this.member.setNextNewsDate(index, newsDate);
+        Date nextNewsDate = getNextNewsDate(this.currentDate, getBoundaryValue(this.member.getNewsPeriod()), false);
+        this.member.setNextNewsDate(index, nextNewsDate);
+
+        if (log.isDebugEnabled()) {
+            String period = this.member.getNewsPeriod().name();
+
+            String inputDate = formerNextNewsDate != null ? DateFormatUtils.format(formerNextNewsDate, DateUpdaterTools.DATE_TIME_FORMAT) : "Undefined";
+            String outputDate = DateFormatUtils.format(nextNewsDate, DateUpdaterTools.DATE_TIME_FORMAT);
+
+            log.debug("UPDATE [" + period + "] NextDate = " + inputDate + " -> " + outputDate);
+        }
 
         return this.member;
     }
@@ -330,9 +329,19 @@ public class NewsUpdater extends AbstractScanUpdater {
      */
     @Override
     public Object updateOnError(int index, Object scannedObject) throws Exception {
+        // For debug logs
+        Date formernextNewsDate = this.member.getNextNewsDate();
+
         // NextNewsDate
-        Date newsDate = getNextNewsDate(this.currentDate, getBoundaryValue(NewsPeriod.error), false);
-        this.member.setNextNewsDate(index, newsDate);
+        Date nextNewsDate = getNextNewsDate(this.currentDate, getBoundaryValue(NewsPeriod.error), false);
+        this.member.setNextNewsDate(index, nextNewsDate);
+
+        if (log.isDebugEnabled()) {
+            String period = this.member.getNewsPeriod().name();
+
+            log.debug("UPDATE [" + period + "] NextDate = " + DateFormatUtils.format(formernextNewsDate, DateUpdaterTools.DATE_TIME_FORMAT) + " -> "
+                    + DateFormatUtils.format(nextNewsDate, DateUpdaterTools.DATE_TIME_FORMAT));
+        }
 
         return this.member;
     }
