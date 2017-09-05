@@ -55,7 +55,8 @@ public class NewsMailer extends AbstractMailer {
     /** New members query. */
     // FIXME: can do a count() in select
     private static final String NEW_MEMBERS_QUERY = "select distinct ttcs:spaceMembers/*1/login from Workspace "
-            + " where ttcs:spaceMembers/*1/joinedDate > TIMESTAMP '%s'" + " and ecm:isVersion = 0 and ecm:currentLifeCycleState <> 'deleted'";
+            + " where ecm:uuid = '%s' and ttcs:spaceMembers/*1/joinedDate > TIMESTAMP '%s'"
+            + " and ecm:isVersion = 0 and ecm:currentLifeCycleState <> 'deleted'";
 
     /** News documents query. */
     private static final String NEWS_DOCS_QUERY = "select * from Annonce, VEVENT where ecm:ancestorId = '%s' " + " and dc:modified > TIMESTAMP '%s'"
@@ -373,7 +374,7 @@ public class NewsMailer extends AbstractMailer {
      */
     protected IterableQueryResult getNewMembers(CoreSession session, String wsId, Date lastNewsDate) {
         String formatedDate = DateFormatUtils.format(lastNewsDate, DateUpdaterTools.DATE_TIME_QUERY_FORMAT);
-        String query = String.format(NEW_MEMBERS_QUERY, formatedDate);
+        String query = String.format(NEW_MEMBERS_QUERY, wsId, formatedDate);
         return session.queryAndFetch(query, NXQL.NXQL, new Object[0]);
     }
 
