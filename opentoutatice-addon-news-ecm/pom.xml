@@ -1,57 +1,45 @@
 <?xml version="1.0"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
-	<modelVersion>4.0.0</modelVersion>
+    <modelVersion>4.0.0</modelVersion>
 
-	<parent>
-		<groupId>opentoutatice-ecm.news</groupId>
-		<artifactId>opentoutatice-addon-news-parent</artifactId>
-		<version>1.0</version>
-	</parent>
+    <parent>
+        <groupId>opentoutatice-ecm.news</groupId>
+        <artifactId>opentoutatice-addon-news-parent</artifactId>
+        <version>4.4-SNAPSHOT</version>
+    </parent>
 
-	<artifactId>opentoutatice-addon-news-ecm</artifactId>
-	<name>News addon</name>
-	<description>Sends news of spaces</description>
+    <artifactId>opentoutatice-addon-news-ecm</artifactId>
+    <name>News addon</name>
+    <description>Sends news of spaces</description>
 
-	<dependencies>
-	    
-	    
-		<dependency>
-			<groupId>org.nuxeo.ecm.platform</groupId>
-			<artifactId>nuxeo-user-profile</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>opentoutatice-ecm.platform</groupId>
-			<artifactId>opentoutatice-ecm-platform-reporting</artifactId>
-		</dependency>
-	</dependencies>
+    <dependencies>
+        <dependency>
+            <groupId>org.nuxeo.ecm.platform</groupId>
+            <artifactId>nuxeo-user-profile</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>opentoutatice-ecm.platform</groupId>
+            <artifactId>opentoutatice-ecm-platform-reporting</artifactId>
+        </dependency>
 
-	<build>
-		<plugins>
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-compiler-plugin</artifactId>
-			</plugin>
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-jar-plugin</artifactId>
-			</plugin>
-		</plugins>
-	</build>
+        <dependency>
+            <groupId>org.nuxeo.runtime</groupId>
+            <artifactId>nuxeo-runtime-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
 
-	<scm>
-		<developerConnection>scm:svn:http://projet.toutatice.fr/repos/toutatice-ecm/opentoutatice-addons/opentoutatice-news/tags/1.0/trunk</developerConnection>
-	</scm>
-
-	<distributionManagement>
-		<repository>
-			<id>toutatice-releases</id>
-			<url>http://projet.toutatice.fr/nexus/content/repositories/toutatice-releases</url>
-		</repository>
-		<snapshotRepository>
-			<id>toutatice-snapshots</id>
-			<url>http://projet.toutatice.fr/nexus/content/repositories/toutatice-snapshots</url>
-		</snapshotRepository>
-	</distributionManagement>
-
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
 
 </project>

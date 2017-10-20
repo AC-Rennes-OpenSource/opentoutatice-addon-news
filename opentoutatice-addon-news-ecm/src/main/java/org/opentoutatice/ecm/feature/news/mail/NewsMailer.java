@@ -13,6 +13,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import javax.mail.MessagingException;
+
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.time.DateFormatUtils;
 import org.apache.commons.logging.Log;
@@ -30,6 +32,8 @@ import org.opentoutatice.ecm.feature.news.model.SpaceMember;
 import org.opentoutatice.ecm.feature.news.model.SpaceMemberConstants;
 import org.opentoutatice.ecm.feature.news.scanner.DateUpdaterTools;
 import org.opentoutatice.ecm.reporter.AbstractMailer;
+import org.opentoutatice.ecm.reporting.test.mode.ErrorTestMode;
+import org.opentoutatice.ecm.reporting.test.mode.ErrorTestModeException;
 
 import fr.toutatice.ecm.platform.core.constants.ToutaticeNuxeoStudioConst;
 import fr.toutatice.ecm.platform.core.helper.ToutaticeDocumentHelper;
@@ -51,7 +55,8 @@ public class NewsMailer extends AbstractMailer {
     /** New members query. */
     // FIXME: can do a count() in select
     private static final String NEW_MEMBERS_QUERY = "select distinct ttcs:spaceMembers/*1/login from Workspace "
-            + " where ttcs:spaceMembers/*1/joinedDate > TIMESTAMP '%s'" + " and ecm:isVersion = 0 and ecm:currentLifeCycleState <> 'deleted'";
+            + " where ecm:uuid = '%s' and ttcs:spaceMembers/*1/joinedDate > TIMESTAMP '%s'"
+            + " and ecm:isVersion = 0 and ecm:currentLifeCycleState <> 'deleted'";
 
     /** News documents query. */
     private static final String NEWS_DOCS_QUERY = "select * from Annonce, VEVENT where ecm:ancestorId = '%s' " + " and dc:modified > TIMESTAMP '%s'"
@@ -125,7 +130,12 @@ public class NewsMailer extends AbstractMailer {
      * Mail data is of Map<String, Object> type.
      */
     @Override
-    public Object build(Object data) throws Exception {
+    public Object build(int index, Object data) throws Exception {
+        // Error test mode
+        if (ErrorTestMode.generateError(6)) {
+            throw new ErrorTestModeException("Error on NewsMailer#build");
+        }
+
         // Input
         SpaceMember member = (SpaceMember) data;
         // Output
@@ -195,6 +205,7 @@ public class NewsMailer extends AbstractMailer {
             }
 
         }
+
         return getData();
     }
 
@@ -241,7 +252,7 @@ public class NewsMailer extends AbstractMailer {
             // Build
             Map<String, Object> news = buildUnitData(currentLogin, doc);
             // Add
-            if(!news.isEmpty()){
+            if (!news.isEmpty()) {
                 newsList.add(news);
             }
         }
@@ -251,7 +262,7 @@ public class NewsMailer extends AbstractMailer {
         // Indicator
         display = newsList.size() > 0 || newMembersCount > 0;
         this.news.put("display", display);
-        
+
         // Sends mail indicator
         this.sends = this.sends || display;
 
@@ -277,7 +288,7 @@ public class NewsMailer extends AbstractMailer {
             // Build
             Map<String, Object> activity = buildUnitData(currentLogin, doc);
             // Add
-            if(!activity.isEmpty()){
+            if (!activity.isEmpty()) {
                 activities.add(activity);
             }
         }
@@ -287,7 +298,7 @@ public class NewsMailer extends AbstractMailer {
         // Indicator
         boolean display = activities.size() > 0;
         this.activities.put("display", display);
-        
+
         // Sends mail indicator
         this.sends = display;
 
@@ -363,7 +374,7 @@ public class NewsMailer extends AbstractMailer {
      */
     protected IterableQueryResult getNewMembers(CoreSession session, String wsId, Date lastNewsDate) {
         String formatedDate = DateFormatUtils.format(lastNewsDate, DateUpdaterTools.DATE_TIME_QUERY_FORMAT);
-        String query = String.format(NEW_MEMBERS_QUERY, formatedDate);
+        String query = String.format(NEW_MEMBERS_QUERY, wsId, formatedDate);
         return session.queryAndFetch(query, NXQL.NXQL, new Object[0]);
     }
 
@@ -432,7 +443,12 @@ public class NewsMailer extends AbstractMailer {
     }
 
     @Override
-    public void send(Object content) throws Exception {
+    public void send(Object content) throws MessagingException, ErrorTestModeException {
+        // Use case errors
+        if (ErrorTestMode.isActivated()) {
+            this.sends = true;
+        }
+
         if (this.sends) {
             super.send(content);
         }

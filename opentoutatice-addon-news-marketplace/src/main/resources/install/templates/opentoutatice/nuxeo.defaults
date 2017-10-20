@@ -8,22 +8,15 @@ ottc.news.scan.daily.boundary=240
 ottc.news.scan.weekly.boundary=720
 ottc.news.scan.error.boundary=120
 
+## Transaction timeout
+#ottc.scan.transaction.timeout=900
+
 ottc.news.portal.url=http://<host>/portal/share/
 
 ## Test mode
 ottc.news.mode.test=false
+## Error test mode
+ottc.scan.error.test.mode=false
 
-# Filers conditions
-ottc.news.scan.accept.subscr.test=false
-ottc.news.scan.accept.none.period.test=false
-
-# Daily, weekly and none values in minutes
-ottc.news.scan.daily.test.gap=15
-# Must be > 0
-ottc.news.scan.daily.test.boundary=2
-ottc.news.scan.weekly.test.gap=30
-# Must be > 0
-ottc.news.scan.weekly.test.boundary=4
-ottc.news.scan.error.test.gap=1
-# Must be > 0
-ottc.news.scan.error.test.boundary=1 
+## Send mail or not
+ottc.news.scan.send.mail=true
