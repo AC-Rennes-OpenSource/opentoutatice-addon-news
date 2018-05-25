@@ -8,7 +8,7 @@
 	<packaging>pom</packaging>
 	<name>News addon - parent</name>
 	<description>Addon to send news of spaces - parent</description>
-	<version>4.5-SNAPSHOT</version>
+	<version>4.4.13.3</version>
 
 	<properties>
 		<nuxeo.version>6.0-HF34</nuxeo.version>
