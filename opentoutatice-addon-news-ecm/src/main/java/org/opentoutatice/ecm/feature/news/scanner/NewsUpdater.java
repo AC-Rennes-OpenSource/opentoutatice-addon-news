@@ -19,6 +19,7 @@ import org.nuxeo.ecm.core.api.DocumentModelList;
 import org.nuxeo.runtime.api.Framework;
 import org.opentoutatice.ecm.feature.news.consistency.DateRepairer;
 import org.opentoutatice.ecm.feature.news.model.SpaceMember;
+import org.opentoutatice.ecm.feature.news.model.SpaceMemberConstants;
 import org.opentoutatice.ecm.feature.news.scanner.io.NewsPeriod;
 import org.opentoutatice.ecm.scanner.AbstractScanUpdater;
 import org.richfaces.component.NumberUtils;
@@ -180,65 +181,90 @@ public class NewsUpdater extends AbstractScanUpdater {
      */
     @Override
     public boolean accept(int index, Object scannedObject) throws Exception {
+    	
+    	// LBI #1847 - Test period first
+    	boolean periodAvaliable = testNewsPeriodAvaliable(scannedObject);
+    	
         // Accepts
         boolean accepts = false;
+        
+        if(periodAvaliable) {
 
-        // Current Date initialized
-        this.currentDate = new Date();
-
-        // Member
-        this.member = (SpaceMember) this.toModel(scannedObject);
-        if (this.member.hasUserProfile()) {
-            // Next news Date
-            Date nextNewsDate = this.member.getNextNewsDate();
-
-            // Member must have subscribed
-            boolean hasSubscribed = this.member.hasSubscribed();
-            if (!hasSubscribed && nextNewsDate != null) {
-                // Could have subscribed before: reset to be consistent
-                this.member.setNextNewsDate(index, null);
+	        // Current Date initialized
+	        this.currentDate = new Date();
+	
+	        // Member
+	        this.member = (SpaceMember) this.toModel(scannedObject);
+	        if (this.member.hasUserProfile()) {
+	            // Next news Date
+	            Date nextNewsDate = this.member.getNextNewsDate();
+	
+	            // Member must have subscribed
+	            boolean hasSubscribed = this.member.hasSubscribed();
+	            if (!hasSubscribed && nextNewsDate != null) {
+	                // Could have subscribed before: reset to be consistent
+	                this.member.setNextNewsDate(index, null);
+	            }
+	
+	            if (hasSubscribed) {
+	                // Period subscription
+	                //boolean noPeriod = NewsPeriod.none.equals(this.member.getNewsPeriod());
+	
+	                // Date condition:
+	                // nextNewsDate is null if just subscribed
+	                boolean mustNotify = nextNewsDate == null;
+	
+	                // Yet subscribed
+	                if (nextNewsDate != null) {
+	                    mustNotify = nextNewsDate.getTime() < this.currentDate.getTime();
+	
+	                    if (isTestModeSet()) {
+	                        mustNotify = true;
+	                    }
+	                }
+	
+	                accepts = mustNotify;
+	
+	                // Debug
+	                if (log.isDebugEnabled()) {
+	                    log.debug("[accepts]: " + accepts + ": " + "(hasSubscribed=" + hasSubscribed + " / mustNotify=" + mustNotify);
+	                }
+	            }
+	
+	            if (accepts) {
+	                if (this.member != null) {
+	                    if (log.isInfoEnabled()) {
+	                        log.info("[Treating] " + this.member.getLogin() + " | " + this.member.getSpaceTitle());
+	                    }
+	                }
+	            }
+	        }
+        }
+        else {
+        	// Debug
+            if (log.isDebugEnabled()) {
+            	Map<String, Serializable> map =  (Map<String, Serializable>) scannedObject;
+            	String login = (String) map.get(SpaceMemberConstants.LOGIN_DATA);
+            	String spaceTitle = (String) map.get(SpaceMemberConstants.SPACE_TITLE);
+            	log.debug("[Skipping] " + login + " | " + spaceTitle);
             }
-
-            if (hasSubscribed) {
-                // Period subscription
-                boolean noPeriod = NewsPeriod.none.equals(this.member.getNewsPeriod());
-
-                // Date condition:
-                // nextNewsDate is null if just subscribed
-                boolean mustNotify = nextNewsDate == null;
-
-                // Yet subscribed
-                if (nextNewsDate != null) {
-                    mustNotify = nextNewsDate.getTime() < this.currentDate.getTime();
-
-                    if (isTestModeSet()) {
-                        mustNotify = true;
-                    }
-                }
-
-                accepts = !noPeriod && mustNotify;
-
-                // Debug
-                if (log.isDebugEnabled()) {
-                    log.debug("[accepts]: " + accepts + ": " + "(hasSubscribed=" + hasSubscribed + " / noPeriod=" + noPeriod + " / mustNotify=" + mustNotify);
-                }
-            }
-
-            if (accepts) {
-                if (this.member != null) {
-                    if (log.isInfoEnabled()) {
-                        log.info("[Treating] " + this.member.getLogin() + " | " + this.member.getSpaceTitle());
-                    }
-                }
-            }
-
         }
 
         return accepts;
 
     }
 
-    /**
+    private boolean testNewsPeriodAvaliable(Object scannedObject) {
+    	Map<String, Serializable> map =  (Map<String, Serializable>) scannedObject;
+    	String period = (String) map.get(SpaceMemberConstants.NEWS_PERIOD_DATA);
+    	
+    	if(period == null || NewsPeriod.none.equals(NewsPeriod.valueOf(period)))
+    		return false;
+    	else return true;
+    	
+	}
+
+	/**
      * {@inheritDoc}
      */
     @Override
