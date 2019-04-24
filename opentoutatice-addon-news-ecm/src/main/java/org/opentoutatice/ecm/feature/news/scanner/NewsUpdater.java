@@ -24,7 +24,7 @@ import org.opentoutatice.ecm.feature.news.scanner.io.NewsPeriod;
 import org.opentoutatice.ecm.scanner.AbstractScanUpdater;
 import org.richfaces.component.NumberUtils;
 
-import fr.toutatice.ecm.platform.core.helper.ToutaticeQueryHelper;
+import fr.toutatice.ecm.platform.core.query.helper.ToutaticeQueryHelper;
 
 
 /**
