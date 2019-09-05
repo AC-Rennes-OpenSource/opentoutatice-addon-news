@@ -11,14 +11,14 @@
 	<version>4.7-SNAPSHOT</version>
 
 	<properties>
-		<nuxeo.version>6.0-HF45</nuxeo.version>
-		<nuxeo.cap.distribution.version>6.0</nuxeo.cap.distribution.version>
-		<ottc.version>4.7</ottc.version>
+		<nuxeo.version>6.1.1</nuxeo.version>
+		<!-- ><nuxeo.cap.distribution.version>6.0</nuxeo.cap.distribution.version> -->
+		<ottc.version>4.7.17</ottc.version>
 	</properties>
 
 	<modules>
 		<module>opentoutatice-addon-news-ecm</module>
-		<module>opentoutatice-addon-news-marketplace</module>
+		<!-- <module>opentoutatice-addon-news-marketplace</module> -->
 	</modules>
 
 	<dependencyManagement>
