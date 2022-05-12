@@ -1,0 +1,8 @@
+/var/jenkins_home/workspace/Toutatice/OpenToutatice/BuildTagAndPush/opentoutatice-addon-news-ecm/src/main/java/org/opentoutatice/ecm/feature/news/scanner/DateUpdaterTools.java
+/var/jenkins_home/workspace/Toutatice/OpenToutatice/BuildTagAndPush/opentoutatice-addon-news-ecm/src/main/java/org/opentoutatice/ecm/feature/news/model/SpaceConstants.java
+/var/jenkins_home/workspace/Toutatice/OpenToutatice/BuildTagAndPush/opentoutatice-addon-news-ecm/src/main/java/org/opentoutatice/ecm/feature/news/model/SpaceMemberConstants.java
+/var/jenkins_home/workspace/Toutatice/OpenToutatice/BuildTagAndPush/opentoutatice-addon-news-ecm/src/main/java/org/opentoutatice/ecm/feature/news/mail/NewsMailer.java
+/var/jenkins_home/workspace/Toutatice/OpenToutatice/BuildTagAndPush/opentoutatice-addon-news-ecm/src/main/java/org/opentoutatice/ecm/feature/news/model/SpaceMember.java
+/var/jenkins_home/workspace/Toutatice/OpenToutatice/BuildTagAndPush/opentoutatice-addon-news-ecm/src/main/java/org/opentoutatice/ecm/feature/news/consistency/DateRepairer.java
+/var/jenkins_home/workspace/Toutatice/OpenToutatice/BuildTagAndPush/opentoutatice-addon-news-ecm/src/main/java/org/opentoutatice/ecm/feature/news/scanner/io/NewsPeriod.java
+/var/jenkins_home/workspace/Toutatice/OpenToutatice/BuildTagAndPush/opentoutatice-addon-news-ecm/src/main/java/org/opentoutatice/ecm/feature/news/scanner/NewsUpdater.java

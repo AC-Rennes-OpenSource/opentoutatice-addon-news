@@ -1,0 +1,12 @@
+org/opentoutatice/ecm/feature/news/scanner/DateUpdaterTools.class
+org/opentoutatice/ecm/feature/news/model/SpaceMember$SilentUpdate.class
+org/opentoutatice/ecm/feature/news/model/SpaceMemberConstants.class
+org/opentoutatice/ecm/feature/news/scanner/NewsUpdater$1.class
+org/opentoutatice/ecm/feature/news/consistency/DateRepairer$1.class
+org/opentoutatice/ecm/feature/news/scanner/DateUpdaterTools$1.class
+org/opentoutatice/ecm/feature/news/consistency/DateRepairer.class
+org/opentoutatice/ecm/feature/news/mail/NewsMailer.class
+org/opentoutatice/ecm/feature/news/scanner/io/NewsPeriod.class
+org/opentoutatice/ecm/feature/news/model/SpaceConstants.class
+org/opentoutatice/ecm/feature/news/model/SpaceMember.class
+org/opentoutatice/ecm/feature/news/scanner/NewsUpdater.class

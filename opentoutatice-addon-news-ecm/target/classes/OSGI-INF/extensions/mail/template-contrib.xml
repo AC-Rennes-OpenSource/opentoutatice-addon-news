@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+
+<component name="org.opentoutatice.ecm.feature.news.mail">
+
+    <require>org.nuxeo.ecm.platform.notification.service.NotificationContrib</require>
+    
+    <extension target="org.nuxeo.ecm.platform.ec.notification.service.NotificationService" 
+        point="templates">
+        
+        <template name="ottcNewsSubject" src="templates/ottc-news-subject_fr.ftl" />
+        <template name="ottcNews" src="templates/ottc-news_fr.ftl" />
+    
+    </extension>
+
+</component>
