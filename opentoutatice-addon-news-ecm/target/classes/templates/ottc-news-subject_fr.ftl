@@ -1,1 +1,0 @@
-Nouveautés de votre espace ${spaceTitle}, le ${sendDate}

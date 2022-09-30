@@ -1,9 +1,0 @@
-Manifest-Version: 1.0
-Bundle-ManifestVersion: 1
-Bundle-Name: Opentoutatice News
-Bundle-SymbolicName: org.opentoutatice.ecm.feature.news;singleton:=true
-Bundle-Localization: plugin
-Bundle-Category: stateful
-Nuxeo-Component: OSGI-INF/extensions/mail/template-contrib.xml,
- OSGI-INF/extensions/reporter/reporter-contrib.xml
- 
