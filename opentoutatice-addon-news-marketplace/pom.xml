@@ -6,7 +6,7 @@
     <parent>
         <groupId>opentoutatice-ecm.news</groupId>
         <artifactId>opentoutatice-addon-news-parent</artifactId>
-        <version>4.7-SNAPSHOT</version>
+        <version>RAB-4.7.18</version>
     </parent>
 
     <artifactId>opentoutatice-addon-news-marketplace</artifactId>
